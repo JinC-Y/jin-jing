@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Map Test</title>
+  <style>
+    body { margin: 20px; font-family: sans-serif; }
+    #test-map { border: 2px solid red; min-height: 400px; }
+  </style>
+</head>
+<body>
+  <h2>Map Test</h2>
+  <div id="test-map"></div>
+
+  <script src="../../common/js/utils.js"></script>
+  <script src="js/map.js"></script>
+  <script>
+    console.log('StorageManager:', typeof StorageManager);
+    console.log('CampusMap:', typeof CampusMap);
+    CampusMap.init('test-map');
+    console.log('Canvas created:', !!CampusMap.canvas);
+    console.log('Canvas size:', CampusMap.canvas.width, CampusMap.canvas.height);
+    console.log('Locations:', CampusMap.locations.length);
+  </script>
+</body>
+</html>

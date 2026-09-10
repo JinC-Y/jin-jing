@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>情绪地图 - 校园心情记录</title>
+
+  <!-- 全局样式 -->
+  <link rel="stylesheet" href="../../common/css/variables.css">
+  <link rel="stylesheet" href="../../common/css/components.css">
+  <!-- 情绪模块专用样式 -->
+  <link rel="stylesheet" href="css/emotion-style.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- 顶部标题 -->
+    <header class="app-header">
+      <h1 class="app-title">🗺️ 校园情绪地图</h1>
+      <p class="app-subtitle">记录你在校园每个角落的心情</p>
+    </header>
+
+    <!-- 底部导航 -->
+    <nav class="bottom-nav">
+      <button class="nav-btn active" data-tab="map">🗺️ 情绪地图</button>
+      <button class="nav-btn" data-tab="timeline">🕐 时间轴</button>
+      <button class="nav-btn" data-tab="diary">📖 情绪回忆录</button>
+      <button class="nav-btn" data-tab="wall">🎭 表情墙</button>
+      <button class="nav-btn" data-tab="achievements">🏆 成就</button>
+    </nav>
+
+    <!-- 测试工具栏 -->
+    <div id="test-tools"></div>
+
+    <!-- ========== 标签页：情绪地图 ========== -->
+    <div class="tab-content" id="tab-map" style="display: block;">
+      <div class="map-section">
+        <div class="map-toolbar">
+          <button class="btn-primary btn-sm" id="add-location-btn">📍 添加地点</button>
+        </div>
+        <div id="map-container"></div>
+      </div>
+    </div>
+
+    <!-- ========== 标签页：时间轴 ========== -->
+    <div class="tab-content" id="tab-timeline" style="display: none;">
+      <div id="timeline-section"></div>
+    </div>
+
+    <!-- ========== 标签页：情绪回忆录 ========== -->
+    <div class="tab-content" id="tab-diary" style="display: none;">
+      <div class="diary-section">
+        <!-- 图表区域 -->
+        <div class="diary-charts">
+          <div id="weekly-trend-chart"></div>
+          <div class="diary-charts-row" style="display: flex; gap: 16px; flex-wrap: wrap;">
+            <div id="today-distribution" style="flex: 1; min-width: 280px;"></div>
+            <div id="location-comparison" style="flex: 1; min-width: 280px;"></div>
+          </div>
+        </div>
+
+        <!-- AI 总结生成 -->
+        <div class="diary-actions">
+          <button class="btn-primary" id="generate-daily-btn">📅 生成今日总结</button>
+          <button class="btn-primary" id="generate-weekly-btn">📊 生成本周总结</button>
+        </div>
+
+        <!-- 总结展示区 -->
+        <div id="daily-summary-display"></div>
+        <div id="weekly-summary-display"></div>
+      </div>
+    </div>
+
+    <!-- ========== 标签页：表情墙 ========== -->
+    <div class="tab-content" id="tab-wall" style="display: none;">
+      <div id="expression-wall-section"></div>
+    </div>
+
+    <!-- ========== 标签页：成就 ========== -->
+    <div class="tab-content" id="tab-achievements" style="display: none;">
+      <div id="achievements-section"></div>
+    </div>
+  </div>
+
+  <!-- 情绪记录侧边面板 -->
+  <div id="emotion-panel"></div>
+
+  <!-- 地点管理模态框 -->
+  <div id="location-modal" class="modal-overlay"></div>
+
+  <!-- 情绪记录成功弹窗 -->
+  <div id="emotion-celebrate" class="celebrate-overlay">
+    <div class="celebrate-card">
+      <div class="celebrate-emoji" id="celebrate-emoji">😊</div>
+      <div class="celebrate-title" id="celebrate-title">心情已记录！</div>
+      <div class="celebrate-weather" id="celebrate-weather">☀️ 今天是晴天哦</div>
+      <div class="celebrate-location" id="celebrate-location">📍 教学楼</div>
+      <div class="celebrate-particles" id="celebrate-particles"></div>
+      <div class="celebrate-close-hint">点击任意位置关闭</div>
+    </div>
+  </div>
+
+  <!-- 脚本引入 -->
+  <script src="../../common/js/utils.js"></script>
+  <script src="../../common/js/ai-proxy.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/emotion-recorder.js"></script>
+  <script src="js/location-manager.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/diary.js"></script>
+  <script src="js/timeline.js"></script>
+  <script src="js/expression-wall.js"></script>
+  <script src="js/achievements.js"></script>
+  <script src="js/test-tools.js"></script>
+  <script src="js/app.js"></script>
+
+  <!-- 调试脚本 -->
+  <script>
+    window.addEventListener('load', function() {
+      console.log('=== 调试信息 ===');
+      console.log('StorageManager:', typeof StorageManager);
+      console.log('CampusMap:', typeof CampusMap);
+      console.log('EmotionRecorder:', typeof EmotionRecorder);
+      console.log('LocationManager:', typeof LocationManager);
+      console.log('EmotionDiary:', typeof EmotionDiary);
+      console.log('EmotionCharts:', typeof EmotionCharts);
+      console.log('EmotionTimeline:', typeof EmotionTimeline);
+      console.log('ExpressionWall:', typeof ExpressionWall);
+      console.log('Achievements:', typeof Achievements);
+      console.log('EmotionApp:', typeof EmotionApp);
+
+      var mapContainer = document.getElementById('map-container');
+      console.log('map-container:', mapContainer ? 'found' : 'NOT FOUND');
+      if (mapContainer) {
+        console.log('map-container children:', mapContainer.children.length);
+        var canvas = mapContainer.querySelector('canvas');
+        console.log('canvas:', canvas ? 'found (' + canvas.width + 'x' + canvas.height + ')' : 'NOT FOUND');
+      }
+    });
+  </script>
+</body>
+</html>

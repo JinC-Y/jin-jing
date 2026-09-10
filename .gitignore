@@ -3,3 +3,7 @@ node_modules/
 .env
 *.log
 .DS_Store
+test-*.js
+test-*.mjs
+*-安装说明.md
+*-安装使用指南.md

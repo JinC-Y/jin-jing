@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>情绪地图 - 校园心情记录</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗺️</text></svg>">
 
   <!-- 全局样式 -->
   <link rel="stylesheet" href="../../common/css/variables.css">
@@ -13,30 +14,65 @@
 </head>
 <body>
 
-  <div class="app-container">
-    <!-- 顶部标题 -->
-    <header class="app-header">
-      <h1 class="app-title">🗺️ 校园情绪地图</h1>
-      <p class="app-subtitle">记录你在校园每个角落的心情</p>
-    </header>
+  <!-- 装饰性背景元素 -->
+  <div class="campus-bg-decor">
+    <div class="cloud cloud-1">☁️</div>
+    <div class="cloud cloud-2">☁️</div>
+    <div class="cloud cloud-3">⛅</div>
+    <div class="floating-leaf leaf-1">🍃</div>
+    <div class="floating-leaf leaf-2">🌸</div>
+    <div class="floating-leaf leaf-3">🍂</div>
+  </div>
 
-    <!-- 底部导航 -->
-    <nav class="bottom-nav">
-      <button class="nav-btn active" data-tab="map">🗺️ 情绪地图</button>
-      <button class="nav-btn" data-tab="timeline">🕐 时间轴</button>
-      <button class="nav-btn" data-tab="diary">📖 情绪回忆录</button>
-      <button class="nav-btn" data-tab="wall">🎭 表情墙</button>
-      <button class="nav-btn" data-tab="achievements">🏆 成就</button>
-    </nav>
+  <div class="app-container">
+    <!-- 顶部标题区 -->
+    <header class="app-header">
+      <div class="header-deco-left">🌿</div>
+      <div class="header-content">
+        <h1 class="app-title">
+          <span class="title-emoji">🗺️</span>
+          <span class="title-text">校园情绪地图</span>
+        </h1>
+        <p class="app-subtitle">记录你在校园每个角落的心情 ♡</p>
+      </div>
+      <div class="header-deco-right">🌿</div>
+    </header>
 
     <!-- 测试工具栏 -->
     <div id="test-tools"></div>
+
+    <!-- 底部导航 -->
+    <nav class="bottom-nav">
+      <button class="nav-btn active" data-tab="map">
+        <span class="nav-icon">🗺️</span>
+        <span class="nav-label">情绪地图</span>
+      </button>
+      <button class="nav-btn" data-tab="timeline">
+        <span class="nav-icon">🕐</span>
+        <span class="nav-label">时间轴</span>
+      </button>
+      <button class="nav-btn" data-tab="diary">
+        <span class="nav-icon">📖</span>
+        <span class="nav-label">情绪回忆录</span>
+      </button>
+      <button class="nav-btn" data-tab="wall">
+        <span class="nav-icon">🎭</span>
+        <span class="nav-label">表情墙</span>
+      </button>
+      <button class="nav-btn" data-tab="achievements">
+        <span class="nav-icon">🏆</span>
+        <span class="nav-label">成就</span>
+      </button>
+    </nav>
 
     <!-- ========== 标签页：情绪地图 ========== -->
     <div class="tab-content" id="tab-map" style="display: block;">
       <div class="map-section">
         <div class="map-toolbar">
-          <button class="btn-primary btn-sm" id="add-location-btn">📍 添加地点</button>
+          <button class="btn-add-location" id="add-location-btn">
+            <span>📍</span>
+            <span>添加地点</span>
+          </button>
         </div>
         <div id="map-container"></div>
       </div>
@@ -50,22 +86,20 @@
     <!-- ========== 标签页：情绪回忆录 ========== -->
     <div class="tab-content" id="tab-diary" style="display: none;">
       <div class="diary-section">
-        <!-- 图表区域 -->
+        <div class="section-title-bar">
+          <span>📖</span> 情绪回忆录
+        </div>
         <div class="diary-charts">
           <div id="weekly-trend-chart"></div>
-          <div class="diary-charts-row" style="display: flex; gap: 16px; flex-wrap: wrap;">
-            <div id="today-distribution" style="flex: 1; min-width: 280px;"></div>
-            <div id="location-comparison" style="flex: 1; min-width: 280px;"></div>
+          <div class="diary-charts-row">
+            <div id="today-distribution"></div>
+            <div id="location-comparison"></div>
           </div>
         </div>
-
-        <!-- AI 总结生成 -->
         <div class="diary-actions">
-          <button class="btn-primary" id="generate-daily-btn">📅 生成今日总结</button>
-          <button class="btn-primary" id="generate-weekly-btn">📊 生成本周总结</button>
+          <button class="btn-campus btn-campus-primary" id="generate-daily-btn">📅 生成今日总结</button>
+          <button class="btn-campus btn-campus-secondary" id="generate-weekly-btn">📊 生成本周总结</button>
         </div>
-
-        <!-- 总结展示区 -->
         <div id="daily-summary-display"></div>
         <div id="weekly-summary-display"></div>
       </div>
@@ -80,6 +114,11 @@
     <div class="tab-content" id="tab-achievements" style="display: none;">
       <div id="achievements-section"></div>
     </div>
+
+    <!-- 底部装饰 -->
+    <footer class="app-footer">
+      <span>🏫</span> AI 校园情绪地图 · 记录美好青春 <span>🏫</span>
+    </footer>
   </div>
 
   <!-- 情绪记录侧边面板 -->
@@ -113,30 +152,5 @@
   <script src="js/achievements.js"></script>
   <script src="js/test-tools.js"></script>
   <script src="js/app.js"></script>
-
-  <!-- 调试脚本 -->
-  <script>
-    window.addEventListener('load', function() {
-      console.log('=== 调试信息 ===');
-      console.log('StorageManager:', typeof StorageManager);
-      console.log('CampusMap:', typeof CampusMap);
-      console.log('EmotionRecorder:', typeof EmotionRecorder);
-      console.log('LocationManager:', typeof LocationManager);
-      console.log('EmotionDiary:', typeof EmotionDiary);
-      console.log('EmotionCharts:', typeof EmotionCharts);
-      console.log('EmotionTimeline:', typeof EmotionTimeline);
-      console.log('ExpressionWall:', typeof ExpressionWall);
-      console.log('Achievements:', typeof Achievements);
-      console.log('EmotionApp:', typeof EmotionApp);
-
-      var mapContainer = document.getElementById('map-container');
-      console.log('map-container:', mapContainer ? 'found' : 'NOT FOUND');
-      if (mapContainer) {
-        console.log('map-container children:', mapContainer.children.length);
-        var canvas = mapContainer.querySelector('canvas');
-        console.log('canvas:', canvas ? 'found (' + canvas.width + 'x' + canvas.height + ')' : 'NOT FOUND');
-      }
-    });
-  </script>
 </body>
 </html>

@@ -10,11 +10,11 @@ const EmotionRecorder = {
 
   // 5级情绪配置
   moods: [
-    { level: 5, emoji: '😊', label: '开心', color: 'var(--mood-happy)', cssColor: '#51CF66', weather: '☀️' },
-    { level: 4, emoji: '😌', label: '平静', color: 'var(--mood-calm)', cssColor: '#4A90D9', weather: '⛅' },
-    { level: 3, emoji: '😐', label: '一般', color: 'var(--mood-neutral)', cssColor: '#FFD43B', weather: '🌤️' },
-    { level: 2, emoji: '😟', label: '焦虑', color: 'var(--mood-anxious)', cssColor: '#FF922B', weather: '🌧️' },
-    { level: 1, emoji: '😢', label: '低落', color: 'var(--mood-sad)', cssColor: '#FF6B6B', weather: '⛈️' }
+    { level: 5, emoji: '😊', label: '开心', color: 'var(--mood-happy)', cssColor: '#51CF66', weather: '☀️', img: 'assets/happy.png' },
+    { level: 4, emoji: '😌', label: '平静', color: 'var(--mood-calm)', cssColor: '#4A90D9', weather: '⛅', img: 'assets/calm.png' },
+    { level: 3, emoji: '😐', label: '一般', color: 'var(--mood-neutral)', cssColor: '#FFD43B', weather: '🌤️', img: 'assets/nutral.png' },
+    { level: 2, emoji: '😟', label: '焦虑', color: 'var(--mood-anxious)', cssColor: '#FF922B', weather: '🌧️', img: 'assets/anxious.png' },
+    { level: 1, emoji: '😢', label: '低落', color: 'var(--mood-sad)', cssColor: '#FF6B6B', weather: '⛈️', img: 'assets/sad.png' }
   ],
 
   /**
@@ -89,7 +89,7 @@ const EmotionRecorder = {
           ${this.moods.map(mood => `
             <button class="emotion-choice-btn" data-level="${mood.level}"
                     style="--mood-color: ${mood.cssColor}">
-              <span class="emotion-choice-emoji">${mood.emoji}</span>
+              <img class="emotion-choice-img" src="${mood.img}" alt="${mood.label}">
               <span class="emotion-choice-label">${mood.label}</span>
               <span class="emotion-choice-weather">${mood.weather}</span>
             </button>
@@ -114,7 +114,7 @@ const EmotionRecorder = {
                 const mood = this.moods.find(m => m.level === r.mood);
                 return `
                   <div class="emotion-history-item">
-                    <span class="emotion-history-emoji">${mood ? mood.emoji : '?'}</span>
+                    <img class="emotion-history-img" src="${mood ? mood.img : ''}" alt=""> 
                     <span class="emotion-history-date">${formatDateCN(r.timestamp)}</span>
                     <span class="emotion-history-note">${r.note || ''}</span>
                   </div>
@@ -222,7 +222,10 @@ const EmotionRecorder = {
     const loc = document.getElementById('celebrate-location');
     const particles = document.getElementById('celebrate-particles');
 
-    if (emoji) emoji.textContent = moodData ? moodData.emoji : '😊';
+    if (emoji) {
+      const moodData = this.moods.find(m => m.level === mood);
+      emoji.innerHTML = moodData ? `<img src="${moodData.img}" alt="${moodData.label}" style="width:64px;height:auto;">` : '😊';
+    }
     if (title) title.textContent = this.getCelebrateText(mood);
     if (weather) weather.textContent = moodData ? `${moodData.weather} 今天是${moodData.label}的一天` : '';
     if (loc) loc.textContent = `📍 ${location.name}`;

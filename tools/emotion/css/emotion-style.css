@@ -369,6 +369,21 @@ body {
   line-height: 1;
 }
 
+.emotion-choice-img {
+  width: 36px;
+  height: auto;
+  object-fit: contain;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.emotion-choice-btn:hover .emotion-choice-img {
+  transform: scale(1.1);
+}
+
+.emotion-choice-btn.selected .emotion-choice-img {
+  transform: scale(1.15);
+}
+
 .emotion-choice-label {
   font-size: 11px;
   color: var(--yuque-text-secondary);
@@ -509,6 +524,13 @@ body {
 .emotion-history-emoji {
   font-size: 18px;
   line-height: 1;
+}
+
+.emotion-history-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .emotion-history-date {
@@ -1328,6 +1350,11 @@ body {
   margin-bottom: 12px;
   line-height: 1;
   animation: celebrateBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+}
+
+.celebrate-emoji img {
+  width: 72px;
+  height: auto;
 }
 
 @keyframes celebrateBounce {

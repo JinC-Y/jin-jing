@@ -21,6 +21,10 @@ const CampusMap = {
     locationRadius: 38
   },
 
+  // 心情图片缓存
+  moodImages: {},
+  moodImagesLoaded: false,
+
   // 卡通配色
   colors: {
     bg: '#FDF6EC',           // 奶油色背景
@@ -107,6 +111,7 @@ const CampusMap = {
     }
 
     this.loadData();
+    this.loadMoodImages();
     this.bindEvents();
     this.render();
 
@@ -117,6 +122,32 @@ const CampusMap = {
     const customLocations = StorageManager.load('emotion_custom_locations') || [];
     this.locations = [...this.presetLocations, ...customLocations];
     this.emotions = StorageManager.load('emotion_records') || [];
+  },
+
+  /**
+   * 预加载心情图片
+   */
+  loadMoodImages() {
+    const moodList = [
+      { level: 5, src: 'assets/happy.png' },
+      { level: 4, src: 'assets/calm.png' },
+      { level: 3, src: 'assets/nutral.png' },
+      { level: 2, src: 'assets/anxious.png' },
+      { level: 1, src: 'assets/sad.png' }
+    ];
+    let loaded = 0;
+    moodList.forEach(mood => {
+      const img = new Image();
+      img.onload = () => {
+        loaded++;
+        if (loaded === moodList.length) {
+          this.moodImagesLoaded = true;
+          this.render();
+        }
+      };
+      img.src = mood.src;
+      this.moodImages[mood.level] = img;
+    });
   },
 
   bindEvents() {
@@ -229,6 +260,24 @@ const CampusMap = {
     if (avg >= 2.5) return '🌤️';
     if (avg >= 1.5) return '🌧️';
     return '⛈️';
+  },
+
+  /**
+   * 获取地点当前心情等级（用于显示对应图片）
+   */
+  getLocationMoodLevel(locId) {
+    const records = this.emotions.filter(e => e.locationId === locId);
+    if (records.length === 0) return null;
+    const now = typeof MockDate !== 'undefined' ? MockDate.now() : Date.now();
+    const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
+    const recentRecords = records.filter(r => r.timestamp > weekAgo);
+    if (recentRecords.length === 0) return null;
+    const avg = recentRecords.reduce((sum, r) => sum + r.mood, 0) / recentRecords.length;
+    if (avg >= 4.5) return 5;
+    if (avg >= 3.5) return 4;
+    if (avg >= 2.5) return 3;
+    if (avg >= 1.5) return 2;
+    return 1;
   },
 
   // ==================== 绘制方法 ====================
@@ -635,11 +684,20 @@ const CampusMap = {
     ctx.stroke();
     ctx.restore();
 
-    // ---- Emoji 图标 ----
-    ctx.font = '30px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(loc.icon, loc.x, loc.y - 1);
+    // ---- Emoji / 心情图片 ----
+    const moodLevel = this.getLocationMoodLevel(loc.id);
+    if (moodLevel && this.moodImagesLoaded && this.moodImages[moodLevel]) {
+      // 有心情记录且图片已加载，绘制心情图片
+      const moodImg = this.moodImages[moodLevel];
+      const imgSize = 36;
+      ctx.drawImage(moodImg, loc.x - imgSize / 2, loc.y - imgSize / 2 - 2, imgSize, imgSize);
+    } else {
+      // 无心情记录或图片未加载，显示 emoji
+      ctx.font = '30px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(loc.icon, loc.x, loc.y - 1);
+    }
 
     // ---- 天气小图标 ----
     if (weather) {

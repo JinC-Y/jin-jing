@@ -78,6 +78,7 @@ const EmotionRecorder = {
           <h3 class="emotion-panel-title">${loc.name}</h3>
           <p class="emotion-panel-desc">${loc.desc || ''}</p>
         </div>
+        ${!loc.isPreset ? `<button class="emotion-panel-delete" id="emotion-panel-delete" title="删除此地点">🗑️</button>` : ''}
         <button class="emotion-panel-close" id="emotion-panel-close">✕</button>
       </div>
 
@@ -138,6 +139,30 @@ const EmotionRecorder = {
       closeBtn.addEventListener('click', () => {
         panel.classList.remove('active');
         panel.innerHTML = '';
+      });
+    }
+
+    // 删除地点按钮（仅自定义地点显示）
+    const deleteBtn = panel.querySelector('#emotion-panel-delete');
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', () => {
+        if (!this.currentLocation) return;
+        const locName = this.currentLocation.name;
+        if (confirm(`确定要删除地点「${locName}」吗？\n相关的情绪记录也会一并删除。`)) {
+          // 删除该地点的所有情绪记录
+          const locId = this.currentLocation.id;
+          this.records = this.records.filter(r => r.locationId !== locId);
+          this.saveData();
+
+          // 删除地点
+          CampusMap.removeCustomLocation(locId);
+
+          // 关闭面板
+          panel.classList.remove('active');
+          panel.innerHTML = '';
+
+          showToast(`🗑️ 已删除「${locName}」`);
+        }
       });
     }
 

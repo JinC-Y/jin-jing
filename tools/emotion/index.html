@@ -14,6 +14,66 @@
 </head>
 <body>
 
+  <!-- ========== 开场动画 ========== -->
+  <div class="intro-overlay" id="intro-overlay">
+    <!-- 柔和光斑 -->
+    <div class="intro-bg">
+      <span class="intro-blob blob-1"></span>
+      <span class="intro-blob blob-2"></span>
+      <span class="intro-blob blob-3"></span>
+    </div>
+
+    <div class="intro-content">
+      <!-- 定位标记（纯 SVG 线条绘制） -->
+      <div class="intro-mark">
+        <span class="intro-ring ring-1"></span>
+        <span class="intro-ring ring-2"></span>
+        <span class="intro-ring ring-3"></span>
+
+        <svg class="intro-svg" viewBox="0 0 120 140" fill="none" aria-hidden="true">
+          <defs>
+            <linearGradient id="introPinGrad" x1="18" y1="18" x2="102" y2="120" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#FFC49B"/>
+              <stop offset="52%" stop-color="#FF9A9E"/>
+              <stop offset="100%" stop-color="#F2708F"/>
+            </linearGradient>
+            <linearGradient id="introHeartGrad" x1="44" y1="33" x2="76" y2="68" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#FFA98C"/>
+              <stop offset="100%" stop-color="#EE6C8A"/>
+            </linearGradient>
+          </defs>
+
+          <!-- 外轮廓：定位针 -->
+          <path class="intro-pin"
+                d="M60 132 C60 132 20 86 20 55 A40 40 0 1 1 100 55 C100 86 60 132 60 132 Z"
+                stroke="url(#introPinGrad)" stroke-width="3"
+                stroke-linecap="round" stroke-linejoin="round"/>
+
+          <!-- 内圈 -->
+          <circle class="intro-pin-inner" cx="60" cy="55" r="20"
+                  stroke="url(#introPinGrad)" stroke-width="2.5"/>
+
+          <!-- 心形 -->
+          <path class="intro-heart"
+                d="M60 68.5 C60 68.5 44.5 56.5 44.5 46.6 C44.5 39.2 50 33.6 55.8 33.6 C58.2 33.6 60 35.7 60 37.6 C60 35.7 61.8 33.6 64.2 33.6 C70 33.6 75.5 39.2 75.5 46.6 C75.5 56.5 60 68.5 60 68.5 Z"
+                fill="url(#introHeartGrad)"/>
+        </svg>
+      </div>
+
+      <!-- 标题：逐字浮现 -->
+      <h2 class="intro-title">
+        <span>校</span><span>园</span><span>情</span><span>绪</span><span>地</span><span>图</span>
+      </h2>
+
+      <p class="intro-subtitle">记录你在校园每个角落的心情</p>
+
+      <!-- 进度线 -->
+      <div class="intro-progress"><span></span></div>
+    </div>
+
+    <div class="intro-skip">轻触跳过</div>
+  </div>
+
   <!-- 装饰性背景元素 -->
   <div class="campus-bg-decor">
     <div class="cloud cloud-1">☁️</div>
@@ -180,6 +240,7 @@
   </div>
 
   <!-- 脚本引入 -->
+  <script src="js/intro.js"></script>
   <script src="../../common/js/utils.js"></script>
   <script src="../../common/js/ai-proxy.js"></script>
   <script src="js/map.js"></script>

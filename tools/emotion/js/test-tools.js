@@ -50,6 +50,7 @@ const TestTools = {
 
         <div class="test-actions">
           <button class="btn-sm btn-secondary" id="test-preview-ach" title="预览成就解锁特效">🏆 预览成就特效</button>
+          <button class="btn-sm btn-secondary" id="test-replay-intro" title="重播开场动画">🎬 重播开场</button>
         </div>
       </div>
     `;
@@ -155,6 +156,16 @@ const TestTools = {
         const defs = Achievements.definitions;
         const pick = defs[Math.floor(Math.random() * defs.length)];
         Achievements.playUnlockEffect(pick, () => {});
+      });
+    }
+
+    // 重播开场动画
+    const replayIntroBtn = document.getElementById('test-replay-intro');
+    if (replayIntroBtn) {
+      replayIntroBtn.addEventListener('click', () => {
+        if (typeof IntroAnimation === 'undefined' || !IntroAnimation.replay()) {
+          showToast('开场动画不可重播，请刷新页面');
+        }
       });
     }
   },

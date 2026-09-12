@@ -42,6 +42,9 @@ const CampusMap = {
     locationRadius: 44
   },
 
+  // 素材版本号（与 index.html 里的 ?v= 保持一致，用于缓存穿透）
+  ASSET_V: '20260912b',
+
   // 心情图片缓存
   moodImages: {},
   moodImagesLoaded: false,
@@ -253,7 +256,7 @@ const CampusMap = {
           this.render();
         }
       };
-      img.src = mood.src;
+      img.src = mood.src + '?v=' + this.ASSET_V;
       this.moodImages[mood.level] = img;
     });
   },
@@ -278,7 +281,7 @@ const CampusMap = {
         console.warn('建筑素材加载失败:', key);
         this._checkSpritesDone(loaded, failed, keys.length);
       };
-      img.src = 'assets/buildings/' + key + '.png';
+      img.src = 'assets/buildings/' + key + '.png?v=' + this.ASSET_V;
     });
   },
 
@@ -840,6 +843,8 @@ const CampusMap = {
       { img: 'assets/sad.png',     label: '低落' }
     ];
 
+    const v = '?v=' + this.ASSET_V;
+
     container.innerHTML = `
       <div class="legend-header">
         <span class="legend-title">心情图例</span>
@@ -848,7 +853,7 @@ const CampusMap = {
       <div class="legend-list">
         ${items.map(item => `
           <div class="legend-row">
-            <img class="legend-row-img" src="${item.img}" alt="${item.label}">
+            <img class="legend-row-img" src="${item.img}${v}" alt="${item.label}">
             <span class="legend-row-label">${item.label}</span>
           </div>
         `).join('')}

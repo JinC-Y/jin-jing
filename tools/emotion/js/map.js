@@ -26,6 +26,15 @@ const CampusMap = {
   pinchStartDist: 0,
   pinchStartScale: 1,
 
+  // 悬停放大
+  hoveredLocation: null,
+  hoverScale: 1.12,
+  _hoverRaf: null,
+  _touchMode: false,
+
+  // 静态图层缓存（草地/道路/装饰只绘制一次）
+  _bgCanvas: null,
+
   // 地图配置
   config: {
     width: 900,
@@ -193,6 +202,12 @@ const CampusMap = {
     const customLocations = StorageManager.load('emotion_custom_locations') || [];
     this.locations = [...this.presetLocations, ...customLocations];
     this.emotions = StorageManager.load('emotion_records') || [];
+
+    // 初始化悬停缩放状态
+    this.locations.forEach(loc => {
+      if (loc._scale === undefined) loc._scale = 1;
+      if (loc._targetScale === undefined) loc._targetScale = 1;
+    });
   },
 
   /**
@@ -227,6 +242,7 @@ const CampusMap = {
     this.canvas.addEventListener('dblclick', (e) => this.handleDoubleClick(e));
     this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
     this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+    this.canvas.addEventListener('mouseleave', () => this.handleMouseLeave());
     window.addEventListener('mouseup', (e) => this.handleMouseUp(e));
 
     // 滚轮缩放
@@ -345,6 +361,10 @@ const CampusMap = {
    * 触摸开始（支持双指缩放）
    */
   handleTouchStart(e) {
+    // 标记为触摸设备，关闭鼠标悬停效果
+    this._touchMode = true;
+    this.setHoveredLocation(null);
+
     if (e.touches.length === 2) {
       e.preventDefault();
       const d = this.touchDistance(e.touches);
@@ -495,6 +515,7 @@ const CampusMap = {
       this.dragLocation = loc;
       this.dragOffset = { x: pos.x - loc.x, y: pos.y - loc.y };
       this.canvas.style.cursor = 'grabbing';
+      this.setHoveredLocation(null);
     } else {
       // 平移地图
       this.isPanning = true;
@@ -524,8 +545,88 @@ const CampusMap = {
       this.view.x = this.panStartView.x + dx;
       this.view.y = this.panStartView.y + dy;
       this.clampView();
+      // 平移时取消悬停
+      this.setHoveredLocation(null);
       this.render();
+      return;
     }
+
+    // 触摸设备不做悬停
+    if (this._touchMode) return;
+
+    // ---- 悬停检测 ----
+    const pos = this.getMousePos(e);
+    const loc = this.findLocationAt(pos.x, pos.y);
+    if (loc !== this.hoveredLocation) {
+      this.setHoveredLocation(loc);
+    }
+  },
+
+  /**
+   * 鼠标移出画布
+   */
+  handleMouseLeave() {
+    this.setHoveredLocation(null);
+  },
+
+  /**
+   * 设置当前悬停地点，并驱动缩放动画
+   */
+  setHoveredLocation(loc) {
+    if (loc === this.hoveredLocation) return;
+    this.hoveredLocation = loc;
+
+    // 光标反馈
+    if (!this.isDragging && !this.isPanning) {
+      this.canvas.style.cursor = loc ? 'pointer' : 'grab';
+    }
+
+    // 更新缩放目标
+    let needAnimate = false;
+    this.locations.forEach(item => {
+      const target = (loc && item.id === loc.id) ? this.hoverScale : 1;
+      if (item._targetScale !== target) {
+        item._targetScale = target;
+        needAnimate = true;
+      }
+    });
+
+    if (needAnimate) this.startHoverAnimation();
+  },
+
+  /**
+   * 启动悬停缩放动画（帧循环，缓动收敛后自动停止）
+   */
+  startHoverAnimation() {
+    if (this._hoverRaf) return;
+
+    const step = () => {
+      let active = false;
+
+      this.locations.forEach(loc => {
+        const target = loc._targetScale === undefined ? 1 : loc._targetScale;
+        const current = loc._scale === undefined ? 1 : loc._scale;
+        const diff = target - current;
+
+        if (Math.abs(diff) > 0.0015) {
+          // 指数缓动，接近时自动减速
+          loc._scale = current + diff * 0.26;
+          active = true;
+        } else {
+          loc._scale = target;
+        }
+      });
+
+      this.render();
+
+      if (active) {
+        this._hoverRaf = requestAnimationFrame(step);
+      } else {
+        this._hoverRaf = null;
+      }
+    };
+
+    this._hoverRaf = requestAnimationFrame(step);
   },
 
   handleMouseUp() {
@@ -605,18 +706,49 @@ const CampusMap = {
     ctx.fillStyle = this.colors.grassDark;
     ctx.fillRect(0, 0, w, h);
 
+    // 静态图层只绘制一次（草地 / 湖 / 道路 / 装饰），保证动画帧率
+    if (!this._bgCanvas) this.buildStaticLayer();
+
     // ---- 应用视图变换（世界坐标层） ----
     ctx.save();
     ctx.translate(this.view.x, this.view.y);
     ctx.scale(this.view.scale, this.view.scale);
 
-    this.drawBackground(ctx, w, h);
-    this.drawLake(ctx);
-    this.drawRoads(ctx);
-    this.drawDecorations(ctx);
+    if (this._bgCanvas) {
+      ctx.drawImage(this._bgCanvas, 0, 0);
+    } else {
+      this.drawBackground(ctx, w, h);
+      this.drawLake(ctx);
+      this.drawRoads(ctx);
+      this.drawDecorations(ctx);
+    }
+
     this.locations.forEach(loc => this.drawLocation(ctx, loc));
 
     ctx.restore();
+  },
+
+  /**
+   * 把不随交互变化的图层烘焙到离屏画布
+   */
+  buildStaticLayer() {
+    if (!this._bgCanvas) {
+      this._bgCanvas = document.createElement('canvas');
+      this._bgCanvas.width = this.config.width;
+      this._bgCanvas.height = this.config.height;
+    }
+
+    const c = this._bgCanvas.getContext('2d');
+    if (!c) {
+      this._bgCanvas = null;
+      return;
+    }
+
+    c.clearRect(0, 0, this.config.width, this.config.height);
+    this.drawBackground(c, this.config.width, this.config.height);
+    this.drawLake(c);
+    this.drawRoads(c);
+    this.drawDecorations(c);
   },
 
   /**
@@ -929,10 +1061,22 @@ const CampusMap = {
    */
   drawLocation(ctx, loc) {
     const isSelected = this.selectedLocation && this.selectedLocation.id === loc.id;
+    const isHovered = this.hoveredLocation && this.hoveredLocation.id === loc.id;
     const moodColor = this.getLocationMoodColor(loc.id);
     const moodLevel = this.getLocationMoodLevel(loc.id);
     const cx = loc.x;
     const by = loc.y + 22;          // 建筑底部基线
+    const scale = loc._scale === undefined ? 1 : loc._scale;
+
+    // ---- 悬停缩放（以建筑底部为锚点，整体放大并微微上浮） ----
+    ctx.save();
+    if (scale !== 1 || isHovered) {
+      ctx.translate(cx, by);
+      // 上浮量在屏幕坐标系下恒定（不受 scale 二次放大）
+      if (isHovered) ctx.translate(0, -3.5);
+      ctx.scale(scale, scale);
+      ctx.translate(-cx, -by);
+    }
 
     // ---- 情绪光晕 ----
     if (moodColor) {
@@ -962,11 +1106,11 @@ const CampusMap = {
       ctx.restore();
     }
 
-    // ---- 地面投影 ----
+    // ---- 地面投影（悬停时变大变淡，做出"抬升"感） ----
     ctx.save();
-    ctx.fillStyle = 'rgba(58,102,28,0.20)';
+    ctx.fillStyle = isHovered ? 'rgba(58,102,28,0.26)' : 'rgba(58,102,28,0.20)';
     ctx.beginPath();
-    ctx.ellipse(cx, by - 1, 33, 8.5, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx, by - 1, isHovered ? 36 : 33, isHovered ? 9.5 : 8.5, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
@@ -980,6 +1124,9 @@ const CampusMap = {
 
     // ---- 名称标签 ----
     this.drawLabel(ctx, cx, by + 13, loc.name, isSelected, moodColor);
+
+    // ---- 结束缩放变换 ----
+    ctx.restore();
   },
 
   /**
@@ -1549,7 +1696,9 @@ const CampusMap = {
       x: x || this.config.width / 2,
       y: y || this.config.height / 2,
       isPreset: false,
-      desc: '自定义地点'
+      desc: '自定义地点',
+      _scale: 1,
+      _targetScale: 1
     };
     this.locations.push(newLoc);
     this.saveCustomLocations();
@@ -1562,6 +1711,9 @@ const CampusMap = {
     this.saveCustomLocations();
     if (this.selectedLocation && this.selectedLocation.id === locId) {
       this.selectedLocation = null;
+    }
+    if (this.hoveredLocation && this.hoveredLocation.id === locId) {
+      this.hoveredLocation = null;
     }
     this.render();
   },
@@ -1577,6 +1729,8 @@ const CampusMap = {
 
   refresh() {
     this.loadData();
+    // 数据重载后原对象已失效，清理悬停引用
+    this.hoveredLocation = null;
     this.render();
   }
 };

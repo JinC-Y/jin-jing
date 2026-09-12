@@ -3069,7 +3069,8 @@ body.intro-locked {
   }
 }
 
-/* ---- 安慰收尾：爱心 + 华丽粒子 ---- */
+/* ---- 安慰收尾：爱心 + 华丽粒子 ----
+   自带暖色舞台背景，独立成一幕，结束后才回到地图 */
 .comfort-finale {
   position: fixed;
   inset: 0;
@@ -3079,11 +3080,18 @@ body.intro-locked {
   height: 100%;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.5s ease;
+  transition: opacity 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+  background:
+    radial-gradient(circle at 24% 20%, rgba(255, 244, 214, 0.95) 0%, rgba(255, 244, 214, 0) 48%),
+    radial-gradient(circle at 78% 78%, rgba(255, 231, 235, 0.9) 0%, rgba(255, 231, 235, 0) 52%),
+    radial-gradient(circle at 50% 50%, rgba(255, 240, 236, 0.9) 0%, rgba(255, 240, 236, 0) 70%),
+    linear-gradient(168deg, #FBFAF7 0%, #F8F7F4 52%, #F5F6F3 100%);
 }
 
 .comfort-finale.active {
   opacity: 1;
+  /* 成一幕独立场景：期间挡住误触，但不响应点击（播完自动回到地图） */
+  pointer-events: auto;
 }
 
 /* 收尾文字：与开场动画同一套模糊浮现手感 */

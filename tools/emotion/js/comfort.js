@@ -279,11 +279,11 @@ const ComfortExperience = {
       if (field) field.innerHTML = '';
       this._bubbles = [];
 
-      // 弹幕退场后，用爱心与烟花收尾
+      // 弹幕退场的同时，爱心舞台交叉淡入（背景同色，过渡无缝）
       if (typeof ComfortFinale !== 'undefined' && !ComfortFinale.isActive()) {
         ComfortFinale.play();
       }
-    }, 620);
+    }, 300);
   },
 
   _clearTimers() {

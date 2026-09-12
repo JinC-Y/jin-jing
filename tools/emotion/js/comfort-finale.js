@@ -107,17 +107,10 @@ const ComfortFinale = {
 
     if (this.canvas) {
       this.canvas.classList.remove('active');
-      const ctx = this.ctx;
-      if (ctx) {
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-      }
     }
 
     this._showText(false);
-    this.sparkles = [];
-    this.minis = [];
-    this.rings = [];
+    this._clearCanvas();
   },
 
   isActive() {
@@ -170,8 +163,64 @@ const ComfortFinale = {
     if (t < this.DURATION) {
       this.raf = requestAnimationFrame(() => this._loop(token));
     } else {
-      this.stop();
+      this._finish(token);
     }
+  },
+
+  /**
+   * 播完后的收尾：保留最后一帧整体淡出，然后回到地图
+   */
+  _finish(token) {
+    if (token !== this.token) return;
+
+    // 停止绘制，但保留最后一帧交给 CSS 淡出
+    if (this.raf) {
+      cancelAnimationFrame(this.raf);
+      this.raf = null;
+    }
+
+    this.canvas.classList.remove('active');
+    this._fadeTextOut();
+
+    const done = () => {
+      if (token !== this.token) return;
+
+      this.active = false;
+      this._clearCanvas();
+
+      // 爱心落幕后，回到地图
+      this._returnToMap();
+    };
+
+    // 给淡出留出时间（与 CSS transition 对齐）
+    setTimeout(done, 580);
+  },
+
+  /**
+   * 清空画布
+   */
+  _clearCanvas() {
+    if (!this.canvas) return;
+    const ctx = this.ctx;
+    if (ctx) {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+    this.sparkles = [];
+    this.minis = [];
+    this.rings = [];
+  },
+
+  /**
+   * 回到地图界面
+   */
+  _returnToMap() {
+    if (typeof EmotionApp === 'undefined' || !EmotionApp.switchTab) return;
+
+    // 已经在情绪地图上就无需切换
+    if (EmotionApp.currentTab === 'map') return;
+
+    EmotionApp.switchTab('map');
   },
 
   _draw(t) {
@@ -632,7 +681,38 @@ const ComfortFinale = {
   _showText(show) {
     const el = document.getElementById(this.textId);
     if (!el) return;
-    el.classList.toggle('show', !!show);
+
+    if (show) {
+      el.style.animation = '';
+      el.style.transition = '';
+      el.style.opacity = '';
+      el.classList.add('show');
+      return;
+    }
+
+    // 复位（不播动画）
+    el.classList.remove('show');
+    el.style.animation = 'none';
+    el.style.transition = 'none';
+    el.style.opacity = '0';
+  },
+
+  /**
+   * 文字随舞台一起淡出
+   */
+  _fadeTextOut() {
+    const el = document.getElementById(this.textId);
+    if (!el || !el.classList.contains('show')) return;
+
+    // 先锁住当前可见状态（动画是 forwards，直接移除会瞬间消失）
+    el.style.animation = 'none';
+    el.style.transition = 'none';
+    el.style.opacity = '1';
+    void el.offsetWidth;
+
+    el.style.transition = 'opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+    el.style.opacity = '0';
+    el.classList.remove('show');
   },
 
   /**

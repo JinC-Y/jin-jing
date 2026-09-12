@@ -1,51 +1,67 @@
 /* ========================================
-   安慰收尾特效：爱心 + 烟花
-   安慰弹幕结束后播放，给情绪一个温暖的落点
+   安慰收尾特效：爱心 + 华丽粒子
+   视觉语言与开场动画一致：
+     渐变线条描绘 → 填充成形 → 光芒涟漪 → 文字浮现
+   在此之上叠加更华丽的粒子层
    ======================================== */
 
 const ComfortFinale = {
   canvasId: 'comfort-finale',
+  textId: 'finale-text',
+
   canvas: null,
   ctx: null,
   dpr: 1,
 
-  heart: [],
-  sparks: [],
-  bursts: [],
+  // 时间轴（毫秒，相对 startTime）
+  T_RAY:    [0, 700],        // 旋转光芒淡入
+  T_DRAW:   [180, 1280],     // 心形轮廓描绘
+  T_FILL:   [1180, 2050],    // 渐变填充
+  T_RING:   1320,            // 光环开始扩散
+  T_SPARK:  1450,            // 华丽粒子浮现
+  T_BURST:  1700,            // 一次爆发
+  T_TEXT:   2050,            // 文字浮现
+  FADE_FROM: 3500,
+  DURATION: 4900,
 
+  // 配色（与开场动画同源：暖橙 → 玫瑰）
+  gradFrom: '#FFC49B',
+  gradMid:  '#FF9A9E',
+  gradTo:   '#F2708F',
+
+  particleColors: [
+    '#FFD86B', '#FFC93C', '#FFC49B', '#FF9A9E',
+    '#F2708F', '#FFFFFF', '#FFB3C6', '#E8C4FF'
+  ],
+
+  // 运行状态
+  sparkles: [],
+  minis: [],
+  rings: [],
   raf: null,
   startTime: 0,
   token: 0,
   active: false,
-  _skipHandler: null,
+  heartCx: 0,
+  heartCy: 0,
+  heartSize: 0,
 
-  // 时间轴（毫秒）
-  CONVERGE: 1050,     // 粒子汇聚成爱心
-  PULSE_FROM: 1050,   // 开始心跳
-  FIREWORKS: [900, 1500, 2100, 2700],  // 烟花绽放时刻
-  FADE_FROM: 3400,
-  DURATION: 4400,
-
-  heartColors: ['#FF6B8A', '#FF4D6D', '#FF8FA3', '#FFB3C6', '#FF7A9C', '#FFD1DC'],
-  sparkColors: ['#FFD166', '#FF9F1C', '#FF6B8A', '#A78BFA', '#7ED8F0', '#FFB3C6', '#FFE066'],
-
-  // 精灵图缓存（每种颜色一张，避免逐帧画渐变）
+  // 精灵图缓存
   _sprites: {},
+  _rays: null,
 
-  /**
-   * 播放特效
-   */
+  /* ==================== 生命周期 ==================== */
+
   play() {
     const canvas = document.getElementById(this.canvasId);
     if (!canvas) return false;
-
     const ctx = canvas.getContext('2d');
     if (!ctx) return false;
 
     this.canvas = canvas;
     this.ctx = ctx;
 
-    // 高清适配
+    // 高清适配（上限 2 倍，兼顾清晰与性能）
     this.dpr = Math.min(window.devicePixelRatio || 1, 2);
     const w = window.innerWidth;
     const h = window.innerHeight;
@@ -57,14 +73,22 @@ const ComfortFinale = {
 
     const token = ++this.token;
     this.active = true;
-    this.sparks = [];
-    this.bursts = [];
 
-    this._buildHeart(w, h);
-    this._scheduleFireworks(w, h);
-    this._bindSkip(token);
+    // 心形几何
+    const size = Math.min(w * 0.30, h * 0.27);
+    this.heartSize = size;
+    this.heartCx = w / 2;
+    this.heartCy = h / 2 + size * 0.02;
+    this._outlinePts = this._buildOutline(size);
+
+    this.sparkles = [];
+    this.minis = [];
+    this.rings = [];
+    this._burstDone = false;
+    this._textShown = false;
 
     canvas.classList.add('active');
+    this._showText(false);
 
     this.startTime = performance.now();
     this._loop(token);
@@ -72,261 +96,6 @@ const ComfortFinale = {
     return true;
   },
 
-  /**
-   * 采样爱心形状（参数方程）
-   */
-  _buildHeart(w, h) {
-    const isNarrow = w < 640;
-    const outlineCount = isNarrow ? 92 : 132;
-    const innerCount = isNarrow ? 66 : 102;
-
-    // 爱心大小随屏幕缩放
-    const size = Math.min(w * 0.34, h * 0.30);
-    const cx = w / 2;
-    const cy = h / 2 + size * 0.06;
-
-    const list = [];
-
-    // —— 轮廓 ——
-    for (let i = 0; i < outlineCount; i++) {
-      const t = (i / outlineCount) * Math.PI * 2;
-      const x = 16 * Math.pow(Math.sin(t), 3);
-      const y = -(13 * Math.cos(t)
-        - 5 * Math.cos(2 * t)
-        - 2 * Math.cos(3 * t)
-        - Math.cos(4 * t));
-      list.push({
-        rx: (x / 17) * size,
-        ry: (y / 17) * size,
-        size: 2.6 + Math.random() * 2.2,
-        color: this.heartColors[Math.floor(Math.random() * this.heartColors.length)]
-      });
-    }
-
-    // —— 内部填充 ——
-    for (let i = 0; i < innerCount; i++) {
-      const t = Math.random() * Math.PI * 2;
-      const k = 0.30 + Math.random() * 0.62;   // 径向收缩，避免糊成一团
-      const x = 16 * Math.pow(Math.sin(t), 3);
-      const y = -(13 * Math.cos(t)
-        - 5 * Math.cos(2 * t)
-        - 2 * Math.cos(3 * t)
-        - Math.cos(4 * t));
-      list.push({
-        rx: (x / 17) * size * k,
-        ry: (y / 17) * size * k,
-        size: 1.6 + Math.random() * 1.8,
-        color: this.heartColors[Math.floor(Math.random() * this.heartColors.length)]
-      });
-    }
-
-    // 起点：从四周散落到爱心周围，形成汇聚感
-    const total = list.length;
-    list.forEach((p, i) => {
-      const ang = Math.random() * Math.PI * 2;
-      const dist = size * (1.6 + Math.random() * 2.4);
-      p.sx = cx + Math.cos(ang) * dist;
-      p.sy = cy + Math.sin(ang) * dist * 0.7;
-      p.delay = (i / total) * 620 + Math.random() * 220;
-    });
-
-    this.heart = list;
-    this.heartCx = cx;
-    this.heartCy = cy;
-  },
-
-  /**
-   * 排布烟花绽放
-   */
-  _scheduleFireworks(w, h) {
-    const size = Math.min(w * 0.34, h * 0.30);
-
-    this.FIREWORKS.forEach((at, i) => {
-      // 环绕爱心随机分布，避开正中心
-      const side = i % 2 === 0 ? -1 : 1;
-      const ang = Math.random() * Math.PI * 0.9;
-      this.bursts.push({
-        at,
-        x: w / 2 + side * (size * (0.95 + Math.random() * 0.75)),
-        y: h / 2 + (Math.random() - 0.5) * size * 1.35,
-        fired: false,
-        count: w < 640 ? 34 : 50
-      });
-    });
-  },
-
-  /**
-   * 主循环
-   */
-  _loop(token) {
-    if (!this.active || token !== this.token) return;
-
-    const now = performance.now();
-    const t = now - this.startTime;
-
-    this._draw(t);
-
-    if (t < this.DURATION) {
-      this.raf = requestAnimationFrame(() => this._loop(token));
-    } else {
-      this.stop();
-    }
-  },
-
-  /**
-   * 绘制一帧
-   */
-  _draw(t) {
-    const ctx = this.ctx;
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-
-    ctx.clearRect(0, 0, w, h);
-
-    // 整体淡出
-    let global = 1;
-    if (t > this.FADE_FROM) {
-      global = Math.max(0, 1 - (t - this.FADE_FROM) / (this.DURATION - this.FADE_FROM));
-    }
-
-    // 心跳缩放
-    let pulse = 1;
-    if (t > this.PULSE_FROM) {
-      const p = (t - this.PULSE_FROM) / 1000;
-      pulse = 1 + Math.sin(p * Math.PI * 2 * 1.15) * 0.045;
-    }
-
-    ctx.save();
-    ctx.globalAlpha = global;
-
-    // ---- 爱心粒子（普通混合，避免密集叠色过曝成白块） ----
-    ctx.globalCompositeOperation = 'source-over';
-    this.heart.forEach(p => {
-      const local = Math.max(0, Math.min(1, (t - p.delay) / this.CONVERGE));
-      if (local <= 0) return;
-
-      const e = 1 - Math.pow(1 - local, 3);   // easeOutCubic
-      const tx = this.heartCx + p.rx * pulse;
-      const ty = this.heartCy + p.ry * pulse;
-      const x = p.sx + (tx - p.sx) * e;
-      const y = p.sy + (ty - p.sy) * e;
-
-      // 汇聚过程中稍微大一点，落位后收拢
-      const r = p.size * (1 + (1 - e) * 0.9);
-      this._dot(x, y, r, p.color, 0.92);
-    });
-
-    // ---- 烟花（叠加发光，炸开时有闪亮感） ----
-    ctx.globalCompositeOperation = 'lighter';
-
-    this.bursts.forEach(b => {
-      if (!b.fired && t >= b.at) {
-        b.fired = true;
-        this._burst(b);
-      }
-    });
-
-    this.sparks.forEach(s => {
-      const age = (t - s.born) / 1000;
-      if (age < 0 || age > s.life) return;
-
-      const k = age / s.life;
-      const x = s.x + s.vx * age;
-      const y = s.y + s.vy * age + 0.5 * s.g * age * age;
-      const alpha = Math.max(0, 1 - k) * (1 - k * 0.25);
-      const r = s.size * (1 - k * 0.55);
-
-      ctx.globalAlpha = global * alpha;
-      this._dot(x, y, r, s.color, 1);
-      ctx.globalAlpha = global;
-    });
-
-    ctx.restore();
-  },
-
-  /**
-   * 生成一簇烟花
-   */
-  _burst(b) {
-    const now = performance.now();
-    for (let i = 0; i < b.count; i++) {
-      const ang = (i / b.count) * Math.PI * 2 + Math.random() * 0.28;
-      const speed = 110 + Math.random() * 190;
-      this.sparks.push({
-        x: b.x,
-        y: b.y,
-        vx: Math.cos(ang) * speed,
-        vy: Math.sin(ang) * speed,
-        g: 150 + Math.random() * 90,
-        size: 1.8 + Math.random() * 2.4,
-        life: 0.85 + Math.random() * 0.75,
-        born: now,
-        color: this.sparkColors[Math.floor(Math.random() * this.sparkColors.length)]
-      });
-    }
-    // 清理过期火花
-    if (this.sparks.length > 900) {
-      this.sparks = this.sparks.filter(s => (now - s.born) / 1000 < s.life);
-    }
-  },
-
-  /**
-   * 画一个发光点（用缓存的精灵图，比逐帧画渐变快很多）
-   */
-  _dot(x, y, r, color, alpha) {
-    const sprite = this._sprite(color);
-    const ctx = this.ctx;
-    const prev = ctx.globalAlpha;
-    ctx.globalAlpha = prev * alpha;
-    ctx.drawImage(sprite, x - r * 2.6, y - r * 2.6, r * 5.2, r * 5.2);
-    ctx.globalAlpha = prev;
-  },
-
-  /**
-   * 颜色 → 发光点精灵图
-   */
-  _sprite(color) {
-    if (this._sprites[color]) return this._sprites[color];
-
-    const size = 64;
-    const c = document.createElement('canvas');
-    c.width = size;
-    c.height = size;
-    const g = c.getContext('2d');
-    if (!g) return c;
-
-    const grad = g.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-    grad.addColorStop(0, color);
-    grad.addColorStop(0.28, color);
-    grad.addColorStop(1, 'rgba(255,255,255,0)');
-
-    g.fillStyle = grad;
-    g.beginPath();
-    g.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
-    g.fill();
-
-    this._sprites[color] = c;
-    return c;
-  },
-
-  /**
-   * 点击跳过
-   */
-  _bindSkip(token) {
-    if (this._skipHandler) {
-      this.canvas.removeEventListener('click', this._skipHandler);
-    }
-    const shownAt = Date.now();
-    this._skipHandler = () => {
-      if (Date.now() - shownAt < 260) return;   // 忽略关闭安慰弹幕的那一次点击
-      this.stop();
-    };
-    this.canvas.addEventListener('click', this._skipHandler);
-  },
-
-  /**
-   * 停止并清理
-   */
   stop() {
     this.active = false;
     this.token++;
@@ -337,10 +106,6 @@ const ComfortFinale = {
     }
 
     if (this.canvas) {
-      if (this._skipHandler) {
-        this.canvas.removeEventListener('click', this._skipHandler);
-        this._skipHandler = null;
-      }
       this.canvas.classList.remove('active');
       const ctx = this.ctx;
       if (ctx) {
@@ -349,12 +114,535 @@ const ComfortFinale = {
       }
     }
 
-    this.heart = [];
-    this.sparks = [];
-    this.bursts = [];
+    this._showText(false);
+    this.sparkles = [];
+    this.minis = [];
+    this.rings = [];
   },
 
   isActive() {
     return this.active;
+  },
+
+  /* ==================== 心形几何 ==================== */
+
+  /**
+   * 心脏参数方程 → 归一化坐标
+   */
+  heartPoint(t, size) {
+    const x = 16 * Math.pow(Math.sin(t), 3);
+    const y = -(13 * Math.cos(t)
+      - 5 * Math.cos(2 * t)
+      - 2 * Math.cos(3 * t)
+      - Math.cos(4 * t));
+    return { x: (x / 17) * size, y: (y / 17) * size };
+  },
+
+  /**
+   * 生成轮廓采样点，并算出垂直居中偏移
+   * （参数方程的心形不以原点为中心，需自行校正）
+   */
+  _buildOutline(size) {
+    const N = 260;
+    const pts = [];
+    let minY = Infinity;
+    let maxY = -Infinity;
+
+    for (let i = 0; i <= N; i++) {
+      const p = this.heartPoint((i / N) * Math.PI * 2, size);
+      pts.push(p);
+      if (p.y < minY) minY = p.y;
+      if (p.y > maxY) maxY = p.y;
+    }
+
+    this._heartDY = -(minY + maxY) / 2;
+    return pts;
+  },
+
+  /* ==================== 主循环 ==================== */
+
+  _loop(token) {
+    if (!this.active || token !== this.token) return;
+
+    const t = performance.now() - this.startTime;
+    this._draw(t);
+
+    if (t < this.DURATION) {
+      this.raf = requestAnimationFrame(() => this._loop(token));
+    } else {
+      this.stop();
+    }
+  },
+
+  _draw(t) {
+    const ctx = this.ctx;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const cx = this.heartCx;
+    const cy = this.heartCy;
+    const size = this.heartSize;
+
+    ctx.clearRect(0, 0, w, h);
+
+    // 整体淡出
+    let fade = 1;
+    if (t > this.FADE_FROM) {
+      fade = Math.max(0, 1 - (t - this.FADE_FROM) / (this.DURATION - this.FADE_FROM));
+    }
+
+    // 心跳（轮廓画完后开始）
+    let pulse = 1;
+    if (t > this.T_DRAW[1]) {
+      const p = (t - this.T_DRAW[1]) / 1000;
+      pulse = 1 + Math.sin(p * Math.PI * 2 * 1.1) * 0.038;
+    }
+
+    ctx.save();
+    ctx.globalAlpha = fade;
+
+    // 1. 旋转光芒
+    this._drawRays(t, cx, cy, size, fade);
+
+    // 2. 扩散光环
+    this._drawRings(t, cx, cy, size, fade);
+
+    // 3. 渐变填充
+    this._drawFill(t, cx, cy, size, pulse, fade);
+
+    // 4. 轮廓描绘
+    this._drawOutline(t, cx, cy, size, pulse, fade);
+
+    // 5. 华丽粒子
+    this._drawParticles(t, cx, cy, size, fade);
+
+    ctx.restore();
+
+    // 6. 文字浮现
+    this._tickText(t);
+  },
+
+  /* ==================== 绘制层 ==================== */
+
+  /**
+   * 旋转光芒（预渲染精灵，避免逐帧建渐变）
+   */
+  _drawRays(t, cx, cy, size, fade) {
+    const [from, to] = this.T_RAY;
+    if (t < from) return;
+
+    const a = Math.min(1, (t - from) / (to - from)) * 0.9;
+    const R = size * 3.1;
+    const ctx = this.ctx;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(t * 0.00013);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = fade * a * 0.75;
+    ctx.drawImage(this._raysSprite(), -R, -R, R * 2, R * 2);
+    ctx.restore();
+  },
+
+  /**
+   * 向外扩散的光环（呼应开场动画的涟漪）
+   */
+  _drawRings(t, cx, cy, size, fade) {
+    if (t < this.T_RING) return;
+
+    const PERIOD = 1500;
+    const COUNT = 3;
+    const ctx = this.ctx;
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+
+    for (let i = 0; i < COUNT; i++) {
+      const phase = ((t - this.T_RING) / PERIOD + i / COUNT) % 1;
+      const r = size * (1.05 + phase * 1.5);
+      const alpha = Math.sin(phase * Math.PI) * 0.5;
+
+      if (alpha <= 0.01) continue;
+
+      ctx.globalAlpha = fade * alpha;
+      ctx.strokeStyle = this.gradFrom;
+      ctx.lineWidth = 2.2 * (1 - phase * 0.6);
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  },
+
+  /**
+   * 心形渐变填充（与开场动画的心形同色系）
+   */
+  _drawFill(t, cx, cy, size, pulse, fade) {
+    const [from, to] = this.T_FILL;
+    if (t < from) return;
+
+    const a = Math.min(1, (t - from) / (to - from));
+    const eased = 1 - Math.pow(1 - a, 2);
+    const ctx = this.ctx;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.translate(0, this._heartDY);
+    ctx.scale(pulse, pulse);
+
+    // 外发光
+    const glow = ctx.createRadialGradient(0, 0, size * 0.2, 0, 0, size * 1.7);
+    glow.addColorStop(0, `rgba(255, 154, 158, ${0.34 * eased * fade})`);
+    glow.addColorStop(0.55, `rgba(242, 112, 143, ${0.14 * eased * fade})`);
+    glow.addColorStop(1, 'rgba(242, 112, 143, 0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(0, 0, size * 1.7, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 心形本体
+    const g = ctx.createLinearGradient(0, -size, 0, size);
+    g.addColorStop(0, this.gradFrom);
+    g.addColorStop(0.5, this.gradMid);
+    g.addColorStop(1, this.gradTo);
+
+    ctx.globalAlpha = fade * eased * 0.9;
+    ctx.fillStyle = g;
+    this._heartPath(ctx, size, 0);
+    ctx.fill();
+
+    // 内侧高光
+    ctx.globalAlpha = fade * eased * 0.35;
+    const inner = ctx.createLinearGradient(0, -size * 0.7, 0, size * 0.3);
+    inner.addColorStop(0, 'rgba(255,255,255,0.85)');
+    inner.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = inner;
+    this._heartPath(ctx, size * 0.62, -size * 0.22);
+    ctx.fill();
+
+    ctx.restore();
+  },
+
+  /**
+   * 轮廓逐段描绘（开场动画的"画出来"手感）
+   */
+  _drawOutline(t, cx, cy, size, pulse, fade) {
+    const [from, to] = this.T_DRAW;
+    if (t < from) return;
+
+    const p = Math.min(1, (t - from) / (to - from));
+    const pts = this._outlinePts;
+    const count = Math.max(2, Math.floor(p * (pts.length - 1)));
+    const ctx = this.ctx;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.translate(0, this._heartDY);
+    ctx.scale(pulse, pulse);
+
+    // 渐变描边
+    const g = ctx.createLinearGradient(-size, -size, size, size);
+    g.addColorStop(0, this.gradFrom);
+    g.addColorStop(0.55, this.gradMid);
+    g.addColorStop(1, this.gradTo);
+
+    ctx.globalAlpha = fade;
+    ctx.strokeStyle = g;
+    ctx.lineWidth = 4.2;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.shadowColor = 'rgba(255, 154, 158, 0.85)';
+    ctx.shadowBlur = 16;
+
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i <= count; i++) {
+      ctx.lineTo(pts[i].x, pts[i].y);
+    }
+    ctx.stroke();
+
+    // 描绘中：笔尖的辉光
+    if (p < 1) {
+      const head = pts[count];
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = fade;
+      ctx.shadowBlur = 0;
+      ctx.drawImage(
+        this._sprite('dot', '#FFF6D8'),
+        head.x - 16, head.y - 16, 32, 32
+      );
+    }
+
+    ctx.restore();
+  },
+
+  /**
+   * 华丽粒子层
+   */
+  _drawParticles(t, cx, cy, size, fade) {
+    if (t < this.T_SPARK) return;
+
+    const ctx = this.ctx;
+
+    // 首帧生成粒子
+    if (this.sparkles.length === 0) {
+      this._spawnSparkles(cx, cy, size);
+      this._spawnMinis(cx, cy, size);
+    }
+
+    // 一次爆发
+    if (!this._burstDone && t >= this.T_BURST) {
+      this._burstDone = true;
+      this._spawnBurst(cx, cy, size, t);
+    }
+
+    const age = (t - this.T_SPARK) / 1000;
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+
+    // —— 星光 ——
+    this.sparkles.forEach(s => {
+      const life = age - s.delay;
+      if (life < 0 || life > s.life) return;
+
+      const k = life / s.life;
+      const alpha = Math.sin(Math.min(1, k) * Math.PI) * s.alpha;
+      const drift = s.drift * life;
+      const x = cx + Math.cos(s.angle) * (s.radius + drift);
+      const y = cy + Math.sin(s.angle) * (s.radius + drift) * 0.9;
+      const twinkle = 0.55 + 0.45 * Math.sin(life * s.twinkleSpeed + s.twinklePhase);
+      const r = s.size * (0.7 + 0.5 * twinkle);
+
+      ctx.globalAlpha = fade * alpha * twinkle;
+      ctx.drawImage(
+        this._sprite('star', s.color),
+        x - r * 2, y - r * 2, r * 4, r * 4
+      );
+    });
+
+    // —— 小爱心 ——
+    this.minis.forEach(m => {
+      const life = age - m.delay;
+      if (life < 0 || life > m.life) return;
+
+      const k = life / m.life;
+      const alpha = Math.sin(Math.min(1, k) * Math.PI) * 0.9;
+      const x = m.x + Math.sin(life * m.swaySpeed + m.swayPhase) * m.sway;
+      const y = m.y - m.rise * life;
+      const r = m.size * (0.85 + 0.3 * Math.sin(life * 3));
+
+      ctx.globalAlpha = fade * alpha;
+      ctx.drawImage(
+        this._sprite('heart', m.color),
+        x - r * 2, y - r * 2, r * 4, r * 4
+      );
+    });
+
+    ctx.restore();
+  },
+
+  /* ==================== 粒子生成 ==================== */
+
+  _spawnSparkles(cx, cy, size) {
+    const isNarrow = window.innerWidth < 640;
+    const count = isNarrow ? 96 : 150;
+
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      // 贴着心形边缘向外铺开
+      const radius = size * (0.75 + Math.random() * 1.55);
+      this.sparkles.push({
+        angle,
+        radius,
+        drift: 12 + Math.random() * 46,
+        size: 1.6 + Math.random() * 3.0,
+        alpha: 0.45 + Math.random() * 0.55,
+        twinkleSpeed: 2.4 + Math.random() * 4.2,
+        twinklePhase: Math.random() * Math.PI * 2,
+        delay: Math.random() * 1.6,
+        life: 2.0 + Math.random() * 2.2,
+        color: this.particleColors[Math.floor(Math.random() * this.particleColors.length)]
+      });
+    }
+  },
+
+  _spawnMinis(cx, cy, size) {
+    const isNarrow = window.innerWidth < 640;
+    const count = isNarrow ? 26 : 46;
+
+    for (let i = 0; i < count; i++) {
+      this.minis.push({
+        x: cx + (Math.random() - 0.5) * size * 2.0,
+        y: cy + (Math.random() - 0.5) * size * 1.1,
+        rise: 22 + Math.random() * 42,
+        sway: 8 + Math.random() * 20,
+        swaySpeed: 1.1 + Math.random() * 1.8,
+        swayPhase: Math.random() * Math.PI * 2,
+        size: 3.5 + Math.random() * 5.5,
+        delay: Math.random() * 1.9,
+        life: 2.2 + Math.random() * 2.0,
+        color: this.particleColors[Math.floor(Math.random() * this.particleColors.length)]
+      });
+    }
+  },
+
+  _spawnBurst(cx, cy, size, t) {
+    const isNarrow = window.innerWidth < 640;
+    const count = isNarrow ? 54 : 88;
+    // 爆发粒子从此刻起算寿命，才能"炸"得干脆
+    const base = (t - this.T_SPARK) / 1000;
+
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2 + Math.random() * 0.3;
+      this.sparkles.push({
+        angle,
+        radius: size * 0.35,
+        drift: 190 + Math.random() * 230,
+        size: 1.8 + Math.random() * 3.2,
+        alpha: 0.6 + Math.random() * 0.4,
+        twinkleSpeed: 3.5 + Math.random() * 4,
+        twinklePhase: Math.random() * Math.PI * 2,
+        delay: base,
+        life: 0.9 + Math.random() * 0.9,
+        color: this.particleColors[Math.floor(Math.random() * this.particleColors.length)]
+      });
+    }
+  },
+
+  /* ==================== 精灵图 ==================== */
+
+  /**
+   * 心形路径（dy 为垂直微调）
+   */
+  _heartPath(ctx, size, dy) {
+    const s = size / 17;
+    ctx.beginPath();
+    for (let i = 0; i <= 64; i++) {
+      const t = (i / 64) * Math.PI * 2;
+      const px = 16 * Math.pow(Math.sin(t), 3) * s;
+      const py = -(13 * Math.cos(t)
+        - 5 * Math.cos(2 * t)
+        - 2 * Math.cos(3 * t)
+        - Math.cos(4 * t)) * s;
+      if (i === 0) ctx.moveTo(px, py + (dy || 0));
+      else ctx.lineTo(px, py + (dy || 0));
+    }
+    ctx.closePath();
+  },
+
+  _sprite(kind, color) {
+    const key = kind + '|' + color;
+    if (this._sprites[key]) return this._sprites[key];
+
+    const S = 64;
+    const c = document.createElement('canvas');
+    c.width = S;
+    c.height = S;
+    const g = c.getContext('2d');
+    if (!g) return c;
+
+    if (kind === 'dot') {
+      const grad = g.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+      grad.addColorStop(0, color);
+      grad.addColorStop(0.26, color);
+      grad.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = grad;
+      g.beginPath();
+      g.arc(S / 2, S / 2, S / 2, 0, Math.PI * 2);
+      g.fill();
+
+    } else if (kind === 'star') {
+      // 四角星光
+      const m = S / 2;
+      g.fillStyle = color;
+      g.shadowColor = color;
+      g.shadowBlur = 10;
+      g.beginPath();
+      g.moveTo(m, 2);
+      g.quadraticCurveTo(m + 5, m - 5, S - 2, m);
+      g.quadraticCurveTo(m + 5, m + 5, m, S - 2);
+      g.quadraticCurveTo(m - 5, m + 5, 2, m);
+      g.quadraticCurveTo(m - 5, m - 5, m, 2);
+      g.closePath();
+      g.fill();
+
+    } else {
+      // 小爱心
+      g.fillStyle = color;
+      g.shadowColor = color;
+      g.shadowBlur = 8;
+      this._heartPath(g, S * 0.42, S * 0.432);
+      g.fill();
+    }
+
+    this._sprites[key] = c;
+    return c;
+  },
+
+  _raysSprite() {
+    if (this._rays) return this._rays;
+
+    const S = 512;
+    const c = document.createElement('canvas');
+    c.width = S;
+    c.height = S;
+    const g = c.getContext('2d');
+    if (!g) return c;
+
+    const cx = S / 2, cy = S / 2, R = S / 2;
+    const N = 20;
+
+    g.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < N; i++) {
+      const a = (i / N) * Math.PI * 2;
+      const w = 0.036;
+      const grad = g.createLinearGradient(
+        cx, cy,
+        cx + Math.cos(a) * R, cy + Math.sin(a) * R
+      );
+      grad.addColorStop(0, 'rgba(255, 214, 140, 0)');
+      grad.addColorStop(0.30, 'rgba(255, 214, 140, 0.30)');
+      grad.addColorStop(0.62, 'rgba(255, 180, 150, 0.16)');
+      grad.addColorStop(1, 'rgba(255, 170, 160, 0)');
+
+      g.fillStyle = grad;
+      g.beginPath();
+      g.moveTo(cx, cy);
+      g.arc(cx, cy, R, a - w, a + w);
+      g.closePath();
+      g.fill();
+    }
+
+    // 中心镂空，避免糊住爱心
+    g.globalCompositeOperation = 'destination-out';
+    const mask = g.createRadialGradient(cx, cy, 0, cx, cy, R * 0.66);
+    mask.addColorStop(0, 'rgba(0,0,0,1)');
+    mask.addColorStop(0.42, 'rgba(0,0,0,0.85)');
+    mask.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = mask;
+    g.fillRect(0, 0, S, S);
+
+    this._rays = c;
+    return c;
+  },
+
+  /* ==================== 文字层 ==================== */
+
+  _showText(show) {
+    const el = document.getElementById(this.textId);
+    if (!el) return;
+    el.classList.toggle('show', !!show);
+  },
+
+  /**
+   * 到点后浮现文字
+   */
+  _tickText(t) {
+    if (this._textShown) return;
+    if (t >= this.T_TEXT) {
+      this._textShown = true;
+      this._showText(true);
+    }
   }
 };

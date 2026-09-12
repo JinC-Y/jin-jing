@@ -131,13 +131,13 @@ const ComfortExperience = {
       if (this._token !== token) return;
       const foot = document.getElementById('comfort-footer');
       if (foot) foot.classList.add('show');
-    }, 12500));
+    }, 11200));
 
-    // 自动关闭
+    // 自动收尾：无需点击，直接过渡到爱心特效
     this._timers.push(setTimeout(() => {
       if (this._token !== token) return;
       this.hide();
-    }, 30000));
+    }, 15500));
 
     // 点击关闭
     this._closeHandler = () => this.hide();

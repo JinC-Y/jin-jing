@@ -3069,7 +3069,7 @@ body.intro-locked {
   }
 }
 
-/* ---- 安慰收尾特效：爱心 + 烟花 ---- */
+/* ---- 安慰收尾：爱心 + 华丽粒子 ---- */
 .comfort-finale {
   position: fixed;
   inset: 0;
@@ -3084,8 +3084,51 @@ body.intro-locked {
 
 .comfort-finale.active {
   opacity: 1;
-  pointer-events: auto;
-  cursor: pointer;
+}
+
+/* 收尾文字：与开场动画同一套模糊浮现手感 */
+.finale-text {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 15%;
+  z-index: 5101;
+  text-align: center;
+  font-family: var(--yuque-font);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 4px;
+  text-indent: 4px;
+  color: #C46A80;
+  text-shadow: 0 2px 18px rgba(255, 214, 200, 0.9);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.finale-text.show {
+  animation: finaleTextIn 1.1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes finaleTextIn {
+  0% {
+    opacity: 0;
+    filter: blur(10px);
+    transform: translateY(16px);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 640px) {
+  .finale-text {
+    font-size: 14px;
+    letter-spacing: 3px;
+    text-indent: 3px;
+    bottom: 13%;
+  }
 }
 
 /* ---- 响应式 ---- */

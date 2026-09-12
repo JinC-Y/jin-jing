@@ -14,6 +14,18 @@ const CampusMap = {
   dragLocation: null,
   dragOffset: { x: 0, y: 0 },
 
+  // 视图变换（缩放/平移）
+  view: { scale: 1, x: 0, y: 0 },
+  minScale: 0.6,
+  maxScale: 3,
+  isPanning: false,
+  panStartScreen: { x: 0, y: 0 },
+  panStartView: { x: 0, y: 0 },
+  movedDuringDrag: false,
+  // 双指缩放
+  pinchStartDist: 0,
+  pinchStartScale: 1,
+
   // 地图配置
   config: {
     width: 900,
@@ -113,6 +125,7 @@ const CampusMap = {
     this.loadData();
     this.loadMoodImages();
     this.bindEvents();
+    this.renderLegend();
     this.render();
 
     console.log('✅ 地图初始化完成，尺寸:', this.canvas.width, 'x', this.canvas.height, '地点数:', this.locations.length);
@@ -151,19 +164,216 @@ const CampusMap = {
   },
 
   bindEvents() {
+    // 鼠标事件
     this.canvas.addEventListener('click', (e) => this.handleClick(e));
     this.canvas.addEventListener('dblclick', (e) => this.handleDoubleClick(e));
     this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
     this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
-    this.canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e));
+    window.addEventListener('mouseup', (e) => this.handleMouseUp(e));
+
+    // 滚轮缩放
+    this.canvas.addEventListener('wheel', (e) => this.handleWheel(e), { passive: false });
+
+    // 触摸事件（移动端）
+    this.canvas.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: false });
+    this.canvas.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
+    this.canvas.addEventListener('touchend', (e) => this.handleTouchEnd(e));
+
+    // 缩放控制按钮
+    const zoomIn = document.getElementById('map-zoom-in');
+    const zoomOut = document.getElementById('map-zoom-out');
+    const zoomReset = document.getElementById('map-zoom-reset');
+    if (zoomIn) zoomIn.addEventListener('click', () => this.zoomBy(1.25));
+    if (zoomOut) zoomOut.addEventListener('click', () => this.zoomBy(0.8));
+    if (zoomReset) zoomReset.addEventListener('click', () => this.resetView());
+
+    // 图例折叠
+    const legendToggle = document.getElementById('legend-toggle');
+    if (legendToggle) {
+      legendToggle.addEventListener('click', () => {
+        const panel = document.getElementById('map-legend');
+        if (panel) panel.classList.toggle('collapsed');
+      });
+    }
   },
 
-  getMousePos(e) {
+  /**
+   * 获取鼠标在画布上的像素坐标
+   */
+  getScreenPos(e) {
     const rect = this.canvas.getBoundingClientRect();
     return {
       x: (e.clientX - rect.left) * (this.canvas.width / rect.width),
       y: (e.clientY - rect.top) * (this.canvas.height / rect.height)
     };
+  },
+
+  /**
+   * 屏幕坐标 → 世界坐标
+   */
+  screenToWorld(p) {
+    return {
+      x: (p.x - this.view.x) / this.view.scale,
+      y: (p.y - this.view.y) / this.view.scale
+    };
+  },
+
+  /**
+   * 获取鼠标的世界坐标
+   */
+  getMousePos(e) {
+    return this.screenToWorld(this.getScreenPos(e));
+  },
+
+  /**
+   * 以某个屏幕点为锚点缩放
+   */
+  zoomAt(screenX, screenY, factor) {
+    const newScale = Math.min(this.maxScale, Math.max(this.minScale, this.view.scale * factor));
+    const k = newScale / this.view.scale;
+    this.view.x = screenX - (screenX - this.view.x) * k;
+    this.view.y = screenY - (screenY - this.view.y) * k;
+    this.view.scale = newScale;
+    this.clampView();
+    this.render();
+  },
+
+  /**
+   * 以画布中心缩放
+   */
+  zoomBy(factor) {
+    this.zoomAt(this.config.width / 2, this.config.height / 2, factor);
+  },
+
+  /**
+   * 重置视图
+   */
+  resetView() {
+    this.view = { scale: 1, x: 0, y: 0 };
+    this.render();
+  },
+
+  /**
+   * 限制平移范围，避免地图完全移出视野
+   */
+  clampView() {
+    const w = this.config.width;
+    const h = this.config.height;
+    const s = this.view.scale;
+    const scaledW = w * s;
+    const scaledH = h * s;
+
+    // 至少保留 25% 的地图在视野内
+    const minX = Math.min(0, w - scaledW) - scaledW * 0.75;
+    const maxX = Math.max(0, w - scaledW) + scaledW * 0.75;
+    const minY = Math.min(0, h - scaledH) - scaledH * 0.75;
+    const maxY = Math.max(0, h - scaledH) + scaledH * 0.75;
+
+    this.view.x = Math.min(maxX, Math.max(minX, this.view.x));
+    this.view.y = Math.min(maxY, Math.max(minY, this.view.y));
+  },
+
+  /**
+   * 滚轮缩放
+   */
+  handleWheel(e) {
+    e.preventDefault();
+    const screen = this.getScreenPos(e);
+    const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+    this.zoomAt(screen.x, screen.y, factor);
+  },
+
+  /**
+   * 触摸开始（支持双指缩放）
+   */
+  handleTouchStart(e) {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      const d = this.touchDistance(e.touches);
+      this.pinchStartDist = d;
+      this.pinchStartScale = this.view.scale;
+      this.isPanning = false;
+    } else if (e.touches.length === 1) {
+      const touch = e.touches[0];
+      const screen = this.getScreenPos({ clientX: touch.clientX, clientY: touch.clientY });
+      const world = this.screenToWorld(screen);
+      const loc = this.findLocationAt(world.x, world.y);
+
+      if (loc && !loc.isPreset) {
+        this.isDragging = true;
+        this.dragLocation = loc;
+        this.dragOffset = { x: world.x - loc.x, y: world.y - loc.y };
+      } else {
+        this.isPanning = true;
+        this.movedDuringDrag = false;
+        this.panStartScreen = screen;
+        this.panStartView = { x: this.view.x, y: this.view.y };
+      }
+    }
+  },
+
+  /**
+   * 触摸移动
+   */
+  handleTouchMove(e) {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      const d = this.touchDistance(e.touches);
+      if (this.pinchStartDist > 0) {
+        const ratio = d / this.pinchStartDist;
+        const targetScale = Math.min(this.maxScale, Math.max(this.minScale, this.pinchStartScale * ratio));
+        const factor = targetScale / this.view.scale;
+        const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        const screen = this.getScreenPos({ clientX: cx, clientY: cy });
+        this.zoomAt(screen.x, screen.y, factor);
+      }
+      return;
+    }
+
+    if (e.touches.length === 1) {
+      const touch = e.touches[0];
+      const screen = this.getScreenPos({ clientX: touch.clientX, clientY: touch.clientY });
+
+      if (this.isDragging && this.dragLocation) {
+        e.preventDefault();
+        const world = this.screenToWorld(screen);
+        this.dragLocation.x = world.x - this.dragOffset.x;
+        this.dragLocation.y = world.y - this.dragOffset.y;
+        this.render();
+      } else if (this.isPanning) {
+        e.preventDefault();
+        this.movedDuringDrag = true;
+        this.view.x = this.panStartView.x + (screen.x - this.panStartScreen.x);
+        this.view.y = this.panStartView.y + (screen.y - this.panStartScreen.y);
+        this.clampView();
+        this.render();
+      }
+    }
+  },
+
+  /**
+   * 触摸结束
+   */
+  handleTouchEnd(e) {
+    if (this.isDragging && this.dragLocation) {
+      this.saveCustomLocations();
+      this.isDragging = false;
+      this.dragLocation = null;
+    }
+    if (e.touches.length === 0) {
+      this.isPanning = false;
+      this.pinchStartDist = 0;
+    }
+  },
+
+  /**
+   * 计算两个触点的距离
+   */
+  touchDistance(touches) {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
   },
 
   findLocationAt(x, y) {
@@ -178,7 +388,11 @@ const CampusMap = {
   },
 
   handleClick(e) {
-    if (this.isDragging) return;
+    // 拖拽或平移结束时不触发选择
+    if (this.movedDuringDrag || this.isDragging) {
+      this.movedDuringDrag = false;
+      return;
+    }
     const pos = this.getMousePos(e);
     const loc = this.findLocationAt(pos.x, pos.y);
     if (loc) {
@@ -199,22 +413,47 @@ const CampusMap = {
   },
 
   handleMouseDown(e) {
-    const pos = this.getMousePos(e);
+    const screen = this.getScreenPos(e);
+    const pos = this.screenToWorld(screen);
     const loc = this.findLocationAt(pos.x, pos.y);
+
     if (loc && !loc.isPreset) {
+      // 拖动自定义地点
       this.isDragging = true;
       this.dragLocation = loc;
       this.dragOffset = { x: pos.x - loc.x, y: pos.y - loc.y };
       this.canvas.style.cursor = 'grabbing';
+    } else {
+      // 平移地图
+      this.isPanning = true;
+      this.movedDuringDrag = false;
+      this.panStartScreen = screen;
+      this.panStartView = { x: this.view.x, y: this.view.y };
+      this.canvas.style.cursor = 'grab';
     }
   },
 
   handleMouseMove(e) {
-    if (!this.isDragging || !this.dragLocation) return;
-    const pos = this.getMousePos(e);
-    this.dragLocation.x = pos.x - this.dragOffset.x;
-    this.dragLocation.y = pos.y - this.dragOffset.y;
-    this.render();
+    if (this.isDragging && this.dragLocation) {
+      const pos = this.getMousePos(e);
+      this.dragLocation.x = pos.x - this.dragOffset.x;
+      this.dragLocation.y = pos.y - this.dragOffset.y;
+      this.render();
+      return;
+    }
+
+    if (this.isPanning) {
+      const screen = this.getScreenPos(e);
+      const dx = screen.x - this.panStartScreen.x;
+      const dy = screen.y - this.panStartScreen.y;
+      if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+        this.movedDuringDrag = true;
+      }
+      this.view.x = this.panStartView.x + dx;
+      this.view.y = this.panStartView.y + dy;
+      this.clampView();
+      this.render();
+    }
   },
 
   handleMouseUp() {
@@ -224,7 +463,8 @@ const CampusMap = {
     }
     this.isDragging = false;
     this.dragLocation = null;
-    this.canvas.style.cursor = 'pointer';
+    this.isPanning = false;
+    this.canvas.style.cursor = 'grab';
   },
 
   saveCustomLocations() {
@@ -289,6 +529,15 @@ const CampusMap = {
 
     ctx.clearRect(0, 0, w, h);
 
+    // 画布外围底色（缩放后露出的区域）
+    ctx.fillStyle = '#EFE9DD';
+    ctx.fillRect(0, 0, w, h);
+
+    // ---- 应用视图变换（世界坐标层） ----
+    ctx.save();
+    ctx.translate(this.view.x, this.view.y);
+    ctx.scale(this.view.scale, this.view.scale);
+
     // 1. 奶油色背景
     this.drawBackground(ctx, w, h);
     // 2. 草地区域
@@ -301,10 +550,47 @@ const CampusMap = {
     this.drawDecorations(ctx);
     // 6. 地点
     this.locations.forEach(loc => this.drawLocation(ctx, loc));
-    // 7. 标题
-    this.drawTitle(ctx, w);
-    // 8. 图例
-    this.drawLegend(ctx, w, h);
+
+    ctx.restore();
+  },
+
+  /**
+   * 渲染 HTML 图例
+   */
+  renderLegend() {
+    const container = document.getElementById('map-legend');
+    if (!container) return;
+
+    const items = [
+      { img: 'assets/happy.png',   label: '开心', color: this.colors.moodHappy },
+      { img: 'assets/calm.png',    label: '平静', color: this.colors.moodCalm },
+      { img: 'assets/nutral.png',  label: '一般', color: this.colors.moodNeutral },
+      { img: 'assets/anxious.png', label: '焦虑', color: this.colors.moodAnxious },
+      { img: 'assets/sad.png',     label: '低落', color: this.colors.moodSad }
+    ];
+
+    container.innerHTML = `
+      <div class="legend-header">
+        <span class="legend-title">心情图例</span>
+        <button class="legend-toggle" id="legend-toggle" title="折叠/展开">▾</button>
+      </div>
+      <div class="legend-list">
+        ${items.map(item => `
+          <div class="legend-row">
+            <img class="legend-row-img" src="${item.img}" alt="${item.label}">
+            <span class="legend-row-label">${item.label}</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+
+    // 重新绑定折叠事件
+    const toggle = container.querySelector('#legend-toggle');
+    if (toggle) {
+      toggle.addEventListener('click', () => {
+        container.classList.toggle('collapsed');
+      });
+    }
   },
 
   /**
@@ -756,73 +1042,6 @@ const CampusMap = {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(text, x, labelY + labelH / 2);
-  },
-
-  /**
-   * 绘制标题
-   */
-  drawTitle(ctx, w) {
-    ctx.save();
-    ctx.fillStyle = '#F5E6C8';
-    ctx.beginPath();
-    this.roundRect(ctx, w / 2 - 110, 8, 220, 36, 18);
-    ctx.fill();
-    ctx.restore();
-
-    ctx.fillStyle = '#8B6914';
-    ctx.font = 'bold 18px "PingFang SC", "Microsoft YaHei", sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('🗺️ 我的校园情绪地图', w / 2, 26);
-  },
-
-  /**
-   * 绘制图例
-   */
-  drawLegend(ctx, w, h) {
-    const items = [
-      { color: this.colors.moodHappy, label: '😊 开心' },
-      { color: this.colors.moodCalm,  label: '😌 平静' },
-      { color: this.colors.moodNeutral, label: '😐 一般' },
-      { color: this.colors.moodAnxious, label: '😟 焦虑' },
-      { color: this.colors.moodSad,  label: '😢 低落' }
-    ];
-
-    const startX = w - 100;
-    const startY = h - 140;
-    const boxW = 90;
-    const boxH = items.length * 22 + 30;
-
-    // 图例背景
-    ctx.save();
-    ctx.fillStyle = 'rgba(255,255,255,0.88)';
-    ctx.strokeStyle = '#E8E0D0';
-    ctx.lineWidth = 1;
-    this.roundRect(ctx, startX - 8, startY - 8, boxW, boxH, 10);
-    ctx.fill();
-    ctx.stroke();
-    ctx.restore();
-
-    // 图例标题
-    ctx.fillStyle = '#8B6914';
-    ctx.font = 'bold 11px "PingFang SC", "Microsoft YaHei", sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('心情图例', startX + boxW / 2 - 8, startY + 8);
-
-    // 图例项
-    ctx.font = '11px "PingFang SC", "Microsoft YaHei", sans-serif';
-    ctx.textAlign = 'left';
-    items.forEach((item, i) => {
-      const y = startY + 22 + i * 22;
-      // 色块
-      ctx.fillStyle = item.color;
-      ctx.beginPath();
-      ctx.arc(startX + 4, y, 5, 0, Math.PI * 2);
-      ctx.fill();
-      // 标签
-      ctx.fillStyle = '#5A4A3A';
-      ctx.fillText(item.label, startX + 14, y + 1);
-    });
   },
 
   // ==================== 工具方法 ====================

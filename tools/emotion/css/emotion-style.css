@@ -1586,10 +1586,590 @@ body {
   transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ========================================
+   P2 体验优化新增样式
+   ======================================== */
+
+/* ---- 地图容器包装 ---- */
+.map-wrapper {
+  position: relative;
+}
+
+/* ---- 心情图例（可折叠） ---- */
+.map-legend {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--yuque-border);
+  border-radius: var(--yuque-radius);
+  box-shadow: var(--yuque-shadow);
+  padding: 8px 10px;
+  min-width: 96px;
+  transition: var(--yuque-transition);
+  z-index: 5;
+}
+
+.legend-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.legend-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--yuque-text-secondary);
+  letter-spacing: 0.5px;
+}
+
+.legend-toggle {
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: transparent;
+  color: var(--yuque-text-tertiary);
+  font-size: 11px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: var(--yuque-transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.legend-toggle:hover {
+  background: var(--yuque-surface-hover);
+  color: var(--yuque-text);
+}
+
+.legend-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+  max-height: 200px;
+  overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.25s ease,
+              margin-top 0.3s ease;
+  opacity: 1;
+}
+
+.map-legend.collapsed .legend-list {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+}
+
+.map-legend.collapsed .legend-toggle {
+  transform: rotate(-90deg);
+}
+
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-row-img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+.legend-row-label {
+  font-size: 11px;
+  color: var(--yuque-text-secondary);
+}
+
+/* ---- 缩放控件 ---- */
+.map-zoom-controls {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 5;
+}
+
+.map-zoom-btn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--yuque-border);
+  border-radius: var(--yuque-radius);
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--yuque-text-secondary);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--yuque-transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--yuque-shadow-sm);
+  line-height: 1;
+  font-family: var(--yuque-font);
+}
+
+.map-zoom-btn:hover {
+  background: var(--yuque-primary);
+  color: white;
+  border-color: var(--yuque-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(54, 115, 255, 0.3);
+}
+
+.map-zoom-btn:active {
+  transform: translateY(0) scale(0.96);
+}
+
+/* ---- 地图操作提示 ---- */
+.map-hint {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 5px 14px;
+  background: rgba(29, 33, 41, 0.72);
+  color: white;
+  font-size: 11px;
+  border-radius: 20px;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 5;
+  animation: hintFadeOut 0.6s ease 4s forwards;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+@keyframes hintFadeOut {
+  to { opacity: 0; visibility: hidden; }
+}
+
+/* ---- 补记日期选择器 ---- */
+.emotion-date-section {
+  margin-bottom: 14px;
+}
+
+.emotion-date-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border: 1px dashed var(--yuque-border);
+  border-radius: var(--yuque-radius);
+  background: transparent;
+  color: var(--yuque-text-secondary);
+  font-size: 12px;
+  font-family: var(--yuque-font);
+  cursor: pointer;
+  transition: var(--yuque-transition);
+}
+
+.emotion-date-toggle:hover {
+  border-color: var(--yuque-primary);
+  color: var(--yuque-primary);
+  background: var(--yuque-primary-bg);
+}
+
+.emotion-date-toggle .toggle-arrow {
+  font-size: 10px;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.emotion-date-toggle.expanded .toggle-arrow {
+  transform: rotate(180deg);
+}
+
+.emotion-date-fields {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  animation: tabFadeIn 0.25s ease;
+}
+
+.emotion-date-input,
+.emotion-time-input {
+  flex: 1;
+  font-size: 12px;
+  padding: 7px 10px;
+}
+
+/* ---- 时间轴搜索与筛选 ---- */
+.timeline-filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.timeline-search {
+  position: relative;
+  flex: 1;
+  min-width: 180px;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 10px;
+  font-size: 12px;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.timeline-search-input {
+  width: 100%;
+  padding: 8px 30px 8px 30px;
+  border: 1px solid var(--yuque-border);
+  border-radius: var(--yuque-radius);
+  font-size: 13px;
+  font-family: var(--yuque-font);
+  background: var(--yuque-surface);
+  color: var(--yuque-text);
+  transition: var(--yuque-transition);
+}
+
+.timeline-search-input:focus {
+  outline: none;
+  border-color: var(--yuque-primary);
+  box-shadow: 0 0 0 3px rgba(54, 115, 255, 0.1);
+}
+
+.timeline-search-input::placeholder {
+  color: var(--yuque-text-tertiary);
+}
+
+.search-clear {
+  position: absolute;
+  right: 8px;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: var(--yuque-border);
+  color: var(--yuque-text-secondary);
+  font-size: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--yuque-transition);
+  line-height: 1;
+}
+
+.search-clear:hover {
+  background: var(--yuque-text-tertiary);
+  color: white;
+}
+
+.timeline-mood-chips {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.mood-chip {
+  min-width: 34px;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--yuque-border);
+  border-radius: var(--yuque-radius);
+  background: var(--yuque-surface);
+  color: var(--yuque-text-secondary);
+  font-size: 12px;
+  font-family: var(--yuque-font);
+  cursor: pointer;
+  transition: var(--yuque-transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mood-chip img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.mood-chip:hover {
+  border-color: var(--yuque-primary);
+  background: var(--yuque-primary-bg);
+}
+
+.mood-chip.active {
+  border-color: var(--yuque-primary);
+  background: var(--yuque-primary);
+  color: white;
+  font-weight: 600;
+}
+
+.mood-chip.active img {
+  filter: brightness(0) invert(1);
+}
+
+.timeline-filter-summary {
+  font-size: 12px;
+  color: var(--yuque-text-secondary);
+  padding: 6px 0 12px;
+}
+
+.timeline-filter-summary strong {
+  color: var(--yuque-primary);
+}
+
+/* ---- 时间轴记录图片与删除 ---- */
+.timeline-record-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.timeline-record-del {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 12px;
+  cursor: pointer;
+  opacity: 0;
+  transition: var(--yuque-transition);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.timeline-record:hover .timeline-record-del {
+  opacity: 0.6;
+}
+
+.timeline-record-del:hover {
+  opacity: 1 !important;
+  background: rgba(255, 77, 79, 0.1);
+}
+
+/* ---- 成就进度 ---- */
+.achievement-progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.achievement-progress-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--yuque-border-light);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.achievement-progress-fill {
+  height: 100%;
+  background: var(--yuque-primary);
+  border-radius: 2px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.achievement-progress-text {
+  font-size: 10px;
+  color: var(--yuque-text-tertiary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ---- Tab 入场动画 ---- */
+.tab-enter {
+  animation: tabSlideIn 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes tabSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---- 骨架屏 ---- */
+.tab-skeleton {
+  animation: tabFadeIn 0.2s ease;
+}
+
+.skeleton-card {
+  background: var(--yuque-surface);
+  border: 1px solid var(--yuque-border);
+  border-radius: var(--yuque-radius-lg);
+  padding: 20px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: center;
+}
+
+.skeleton-line {
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--yuque-border-light) 25%,
+    #E9ECF2 50%,
+    var(--yuque-border-light) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.4s ease-in-out infinite;
+}
+
+.skeleton-line.w40 { width: 40%; }
+.skeleton-line.w50 { width: 50%; }
+.skeleton-line.w60 { width: 60%; }
+.skeleton-line.w75 { width: 75%; }
+.skeleton-line.w80 { width: 80%; }
+.skeleton-line.w85 { width: 85%; }
+.skeleton-line.w90 { width: 90%; }
+.skeleton-line.w100 { width: 100%; }
+
+@keyframes skeletonShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ---- AI 生成中骨架 ---- */
+.skeleton-summary {
+  position: relative;
+  overflow: hidden;
+}
+
+.ai-progress-text {
+  font-size: 12px;
+  color: var(--yuque-primary);
+  transition: opacity 0.15s ease;
+  font-weight: 500;
+}
+
+.ai-progress-text::after {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 12px;
+  background: var(--yuque-primary);
+  margin-left: 4px;
+  vertical-align: text-bottom;
+  animation: cursorBlink 1s step-end infinite;
+}
+
+@keyframes cursorBlink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* ---- AI 错误卡片 ---- */
+.ai-error-card {
+  background: var(--yuque-surface);
+  border: 1px solid rgba(255, 77, 79, 0.2);
+  border-radius: var(--yuque-radius-lg);
+  padding: 24px;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.ai-error-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.ai-error-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--yuque-text);
+  margin-bottom: 4px;
+}
+
+.ai-error-desc {
+  font-size: 12px;
+  color: var(--yuque-text-tertiary);
+  margin-bottom: 12px;
+}
+
+/* ---- 图表行布局 ---- */
+.diary-charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+
 /* ---- 响应式 ---- */
 @media (max-width: 768px) {
   .app-container {
     padding: 0 16px 32px;
+  }
+
+  /* 地图叠加层在小屏上更紧凑 */
+  .map-legend {
+    left: 8px;
+    bottom: 8px;
+    padding: 6px 8px;
+    min-width: 84px;
+  }
+
+  .map-zoom-controls {
+    right: 8px;
+    bottom: 8px;
+  }
+
+  .map-zoom-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 14px;
+  }
+
+  .map-hint {
+    font-size: 10px;
+    padding: 4px 10px;
+    max-width: 90%;
+    white-space: normal;
+    text-align: center;
+  }
+
+  .diary-charts-row {
+    grid-template-columns: 1fr;
+  }
+
+  .timeline-filters {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .timeline-mood-chips {
+    justify-content: space-between;
+  }
+
+  .mood-chip {
+    flex: 1;
+  }
+
+  .emotion-date-fields {
+    flex-direction: column;
   }
 
   .app-header {

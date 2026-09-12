@@ -74,7 +74,22 @@
             <span>添加地点</span>
           </button>
         </div>
-        <div id="map-container"></div>
+        <div class="map-wrapper">
+          <div id="map-container"></div>
+
+          <!-- 心情图例（可折叠） -->
+          <div class="map-legend" id="map-legend"></div>
+
+          <!-- 缩放控件 -->
+          <div class="map-zoom-controls">
+            <button class="map-zoom-btn" id="map-zoom-in" title="放大">＋</button>
+            <button class="map-zoom-btn" id="map-zoom-out" title="缩小">－</button>
+            <button class="map-zoom-btn" id="map-zoom-reset" title="重置视图">⟲</button>
+          </div>
+
+          <!-- 操作提示 -->
+          <div class="map-hint">🖱️ 滚轮缩放 · 拖拽平移 · 点击地点记录心情</div>
+        </div>
       </div>
     </div>
 

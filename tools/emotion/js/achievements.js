@@ -258,6 +258,128 @@ const Achievements = {
   },
 
   /**
+   * 获取某个成就的进度
+   * @returns {{current:number, target:number}|null}
+   */
+  getProgress(id, records) {
+    const now = typeof MockDate !== 'undefined' ? MockDate.now() : Date.now();
+    const daysAgo = (n) => now - n * 24 * 60 * 60 * 1000;
+
+    switch (id) {
+      case 'first_record':
+        return { current: Math.min(records.length, 1), target: 1 };
+
+      case 'rainbow_week': {
+        const weekRecords = records.filter(r => r.timestamp > daysAgo(7));
+        const moods = new Set(weekRecords.map(r => r.mood));
+        return { current: moods.size, target: 5 };
+      }
+
+      case 'study_master': {
+        const libraryHappy = records.filter(r => {
+          const loc = CampusMap.locations.find(l => l.id === r.locationId);
+          return loc && loc.name === '图书馆' && r.mood === 5;
+        });
+        const dates = [...new Set(libraryHappy.map(r => formatDate(r.timestamp)))];
+        return { current: Math.min(dates.length, 7), target: 7 };
+      }
+
+      case 'foodie': {
+        const n = records.filter(r => {
+          const loc = CampusMap.locations.find(l => l.id === r.locationId);
+          return loc && loc.name === '食堂' && r.mood === 5;
+        }).length;
+        return { current: Math.min(n, 10), target: 10 };
+      }
+
+      case 'night_owl': {
+        const n = records.filter(r => new Date(r.timestamp).getHours() >= 22).length;
+        return { current: Math.min(n, 5), target: 5 };
+      }
+
+      case 'explorer': {
+        const n = new Set(records.map(r => r.locationId)).size;
+        return { current: Math.min(n, 10), target: 10 };
+      }
+
+      case 'consistent_7': {
+        const dates = [...new Set(records.map(r => formatDate(r.timestamp)))].sort();
+        return { current: Math.min(this.longestStreak(dates), 7), target: 7 };
+      }
+
+      case 'early_bird': {
+        const n = records.filter(r => new Date(r.timestamp).getHours() < 7).length;
+        return { current: Math.min(n, 5), target: 5 };
+      }
+
+      case 'happy_place': {
+        const counts = {};
+        records.filter(r => r.mood === 5).forEach(r => {
+          counts[r.locationId] = (counts[r.locationId] || 0) + 1;
+        });
+        const max = Object.values(counts).length ? Math.max(...Object.values(counts)) : 0;
+        return { current: Math.min(max, 20), target: 20 };
+      }
+
+      case 'record_master':
+        return { current: Math.min(records.length, 100), target: 100 };
+
+      case 'week_warrior': {
+        const dates = [...new Set(records.map(r => formatDate(r.timestamp)))];
+        let weeks = 0;
+        const today = typeof MockDate !== 'undefined' ? MockDate.getDate() : new Date();
+        for (let w = 0; w < 4; w++) {
+          const weekEnd = new Date(today);
+          weekEnd.setDate(weekEnd.getDate() - w * 7);
+          const weekStart = new Date(weekEnd);
+          weekStart.setDate(weekStart.getDate() - 6);
+          const has = dates.some(d => {
+            const dd = new Date(d + 'T00:00:00');
+            return dd >= new Date(formatDate(weekStart) + 'T00:00:00') &&
+                   dd <= new Date(formatDate(weekEnd) + 'T23:59:59');
+          });
+          if (has) weeks++;
+        }
+        return { current: weeks, target: 4 };
+      }
+
+      case 'mood_swing': {
+        const groups = {};
+        records.forEach(r => {
+          const d = formatDate(r.timestamp);
+          (groups[d] = groups[d] || []).push(r.mood);
+        });
+        const done = Object.values(groups).some(m => m.includes(1) && m.includes(5));
+        return { current: done ? 1 : 0, target: 1 };
+      }
+
+      default:
+        return null;
+    }
+  },
+
+  /**
+   * 计算最长连续天数
+   */
+  longestStreak(sortedDates) {
+    if (sortedDates.length === 0) return 0;
+    let best = 1;
+    let cur = 1;
+    for (let i = 1; i < sortedDates.length; i++) {
+      const prev = new Date(sortedDates[i - 1] + 'T00:00:00');
+      const curr = new Date(sortedDates[i] + 'T00:00:00');
+      const diff = Math.round((curr - prev) / (24 * 60 * 60 * 1000));
+      if (diff === 1) {
+        cur++;
+        if (cur > best) best = cur;
+      } else if (diff > 1) {
+        cur = 1;
+      }
+    }
+    return best;
+  },
+
+  /**
    * 渲染成就页面
    */
   render() {
@@ -267,6 +389,7 @@ const Achievements = {
     const unlockedCount = this.achievements.length;
     const totalCount = this.definitions.length;
     const progress = totalCount > 0 ? (unlockedCount / totalCount) * 100 : 0;
+    const records = EmotionRecorder.records;
 
     container.innerHTML = `
       <div class="achievements-container">
@@ -277,7 +400,7 @@ const Achievements = {
 
         <div class="achievements-progress">
           <div class="progress-bar">
-            <div class="progress-bar-fill" style="width: ${progress}%; background: var(--primary-color)"></div>
+            <div class="progress-bar-fill" style="width: ${progress}%"></div>
           </div>
           <span class="progress-text">${progress.toFixed(0)}% 已解锁</span>
         </div>
@@ -286,6 +409,8 @@ const Achievements = {
           ${this.definitions.map(def => {
             const unlocked = this.isUnlocked(def.id);
             const unlockData = this.achievements.find(a => a.id === def.id);
+            const prog = unlocked ? null : this.getProgress(def.id, records);
+            const pct = prog ? Math.min(100, (prog.current / prog.target) * 100) : 0;
 
             return `
               <div class="achievement-card ${unlocked ? 'unlocked' : 'locked'}">
@@ -294,9 +419,16 @@ const Achievements = {
                 <div class="achievement-desc">${def.description}</div>
                 ${unlocked ? `
                   <div class="achievement-unlock-date">
-                    ${formatDateCN(unlockData.unlockedAt)}
+                    ✓ ${formatDateCN(unlockData.unlockedAt)}
                   </div>
-                ` : ''}
+                ` : (prog ? `
+                  <div class="achievement-progress-wrap">
+                    <div class="achievement-progress-bar">
+                      <div class="achievement-progress-fill" style="width: ${pct}%"></div>
+                    </div>
+                    <span class="achievement-progress-text">${prog.current}/${prog.target}</span>
+                  </div>
+                ` : '')}
               </div>
             `;
           }).join('')}

@@ -102,6 +102,17 @@ const EmotionRecorder = {
                     rows="3" id="emotion-note"></textarea>
         </div>
 
+        <div class="emotion-date-section">
+          <button class="emotion-date-toggle" id="emotion-date-toggle">
+            <span>🕐 补记其他时间</span>
+            <span class="toggle-arrow">▾</span>
+          </button>
+          <div class="emotion-date-fields" id="emotion-date-fields" style="display:none;">
+            <input type="date" class="input-field emotion-date-input" id="emotion-date">
+            <input type="time" class="input-field emotion-time-input" id="emotion-time">
+          </div>
+        </div>
+
         <button class="btn-primary emotion-submit-btn" id="emotion-submit" disabled>
           记录心情
         </button>
@@ -181,6 +192,27 @@ const EmotionRecorder = {
       });
     });
 
+    // 补记时间开关
+    const dateToggle = panel.querySelector('#emotion-date-toggle');
+    const dateFields = panel.querySelector('#emotion-date-fields');
+    const dateInput = panel.querySelector('#emotion-date');
+    const timeInput = panel.querySelector('#emotion-time');
+
+    if (dateToggle && dateFields) {
+      // 默认填入当前日期
+      const now = typeof MockDate !== 'undefined' ? MockDate.getDate() : new Date();
+      if (dateInput) dateInput.value = formatDate(now);
+      if (timeInput) {
+        timeInput.value = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+      }
+
+      dateToggle.addEventListener('click', () => {
+        const isHidden = dateFields.style.display === 'none';
+        dateFields.style.display = isHidden ? 'block' : 'none';
+        dateToggle.classList.toggle('expanded', isHidden);
+      });
+    }
+
     // 提交按钮
     if (submitBtn) {
       submitBtn.addEventListener('click', () => {
@@ -189,7 +221,18 @@ const EmotionRecorder = {
         const noteInput = panel.querySelector('#emotion-note');
         const note = noteInput ? noteInput.value.trim() : '';
 
-        this.recordEmotion(this.currentLocation.id, selectedMood, note);
+        // 计算时间戳（支持补记）
+        let timestamp = null;
+        const fieldsVisible = dateFields && dateFields.style.display !== 'none';
+        if (fieldsVisible && dateInput && dateInput.value) {
+          const timeStr = (timeInput && timeInput.value) ? timeInput.value : '12:00';
+          const dt = new Date(dateInput.value + 'T' + timeStr + ':00');
+          if (!isNaN(dt.getTime())) {
+            timestamp = dt.getTime();
+          }
+        }
+
+        this.recordEmotion(this.currentLocation.id, selectedMood, note, timestamp);
 
         // 关闭侧边面板
         panel.classList.remove('active');
@@ -306,13 +349,13 @@ const EmotionRecorder = {
    * @param {number} mood - 情绪等级 1-5
    * @param {string} note - 备注
    */
-  recordEmotion(locationId, mood, note = '') {
+  recordEmotion(locationId, mood, note = '', customTimestamp = null) {
     const record = {
       id: generateId('emo'),
       locationId,
       mood,
       note,
-      timestamp: typeof MockDate !== 'undefined' ? MockDate.now() : Date.now()
+      timestamp: customTimestamp || (typeof MockDate !== 'undefined' ? MockDate.now() : Date.now())
     };
 
     this.records.push(record);

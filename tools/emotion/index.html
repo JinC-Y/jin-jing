@@ -121,20 +121,26 @@
           </button>
         </div>
         <div class="map-wrapper">
-          <div id="map-container"></div>
+          <!-- 地图舞台：缩放控件与提示以此层定位 -->
+          <div class="map-stage">
+            <div id="map-container"></div>
 
-          <!-- 心情图例（可折叠） -->
-          <div class="map-legend" id="map-legend"></div>
+            <!-- 缩放控件 -->
+            <div class="map-zoom-controls">
+              <button class="map-zoom-btn" id="map-zoom-in" title="放大">＋</button>
+              <button class="map-zoom-btn" id="map-zoom-out" title="缩小">－</button>
+              <button class="map-zoom-btn" id="map-zoom-reset" title="重置视图">⟲</button>
+            </div>
 
-          <!-- 缩放控件 -->
-          <div class="map-zoom-controls">
-            <button class="map-zoom-btn" id="map-zoom-in" title="放大">＋</button>
-            <button class="map-zoom-btn" id="map-zoom-out" title="缩小">－</button>
-            <button class="map-zoom-btn" id="map-zoom-reset" title="重置视图">⟲</button>
+            <!-- 操作提示（按设备切换文案） -->
+            <div class="map-hint">
+              <span class="hint-desktop">🖱️ 滚轮缩放 · 拖拽平移 · 点击地点记录心情</span>
+              <span class="hint-mobile">👆 双指缩放 · 拖动平移 · 点击地点记录心情</span>
+            </div>
           </div>
 
-          <!-- 操作提示 -->
-          <div class="map-hint">🖱️ 滚轮缩放 · 拖拽平移 · 点击地点记录心情</div>
+          <!-- 心情图例（桌面端浮在地图上，手机端落到地图下方） -->
+          <div class="map-legend" id="map-legend"></div>
         </div>
       </div>
     </div>

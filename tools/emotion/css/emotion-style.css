@@ -1588,7 +1588,12 @@ body {
   position: relative;
 }
 
-/* ---- 心情图例（可折叠） ---- */
+/* 地图舞台：缩放控件 / 提示 / 选中光圈的定位基准 */
+.map-stage {
+  position: relative;
+}
+
+/* ---- 心情图例（桌面端浮于地图左下角，可折叠） ---- */
 .map-legend {
   position: absolute;
   left: 12px;
@@ -1741,6 +1746,11 @@ body {
   animation: hintFadeOut 0.6s ease 4s forwards;
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
+}
+
+/* 触屏 / 桌面文案切换 */
+.hint-mobile {
+  display: none;
 }
 
 @keyframes hintFadeOut {
@@ -2936,12 +2946,62 @@ body.intro-locked {
     padding: 0 16px 32px;
   }
 
-  /* 地图叠加层在小屏上更紧凑 */
+  /* ===== 手机端：图例移出地图，改为地图下方的一行横条，不再遮挡 ===== */
   .map-legend {
-    left: 8px;
-    bottom: 8px;
-    padding: 6px 8px;
-    min-width: 84px;
+    position: static;
+    left: auto;
+    bottom: auto;
+    margin-top: 10px;
+    padding: 9px 12px;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .map-legend::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* 手机端不需要折叠按钮，直接平铺 */
+  .map-legend .legend-toggle {
+    display: none;
+  }
+
+  .map-legend .legend-header {
+    flex: 0 0 auto;
+  }
+
+  .map-legend .legend-title {
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .map-legend .legend-list {
+    flex-direction: row;
+    gap: 14px;
+    margin-top: 0;
+    max-height: none;
+    overflow: visible;
+    opacity: 1;
+    flex: 0 0 auto;
+  }
+
+  .map-legend .legend-row {
+    flex: 0 0 auto;
+    gap: 4px;
+  }
+
+  .map-legend .legend-row-img {
+    width: 20px;
+    height: 20px;
+  }
+
+  .map-legend .legend-row-label {
+    white-space: nowrap;
   }
 
   .map-zoom-controls {
@@ -2950,17 +3010,26 @@ body.intro-locked {
   }
 
   .map-zoom-btn {
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
     font-size: 14px;
   }
 
   .map-hint {
     font-size: 10px;
     padding: 4px 10px;
-    max-width: 90%;
+    max-width: 88%;
     white-space: normal;
     text-align: center;
+    top: 8px;
+  }
+
+  .hint-desktop {
+    display: none;
+  }
+
+  .hint-mobile {
+    display: inline;
   }
 
   .diary-charts-row {
@@ -3051,3 +3120,50 @@ body.intro-locked {
     text-align: center;
   }
 }
+
+/* ========================================
+   窄屏手机：图例横向排布铺满一行
+   ======================================== */
+@media (max-width: 520px) {
+  .map-legend {
+    padding: 8px 10px;
+    gap: 0;
+  }
+
+  /* 空间有限，去掉标题只保留 5 个心情 */
+  .map-legend .legend-header {
+    display: none;
+  }
+
+  .map-legend .legend-list {
+    width: 100%;
+    gap: 6px;
+    justify-content: space-between;
+  }
+
+  .map-legend .legend-row {
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .map-legend .legend-row-img {
+    width: 22px;
+    height: 22px;
+  }
+
+  .map-legend .legend-row-label {
+    font-size: 10px;
+    line-height: 1.1;
+  }
+
+  /* 折叠状态在手机端无效，始终展开 */
+  .map-legend.collapsed .legend-list {
+    max-height: none;
+    opacity: 1;
+    margin-top: 0;
+  }
+}
+

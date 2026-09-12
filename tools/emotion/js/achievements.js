@@ -201,6 +201,13 @@ const Achievements = {
    * 初始化
    */
   init() {
+    this.loadData();
+  },
+
+  /**
+   * 从本地存储载入成就数据
+   */
+  loadData() {
     this.achievements = StorageManager.load('emotion_achievements') || [];
   },
 

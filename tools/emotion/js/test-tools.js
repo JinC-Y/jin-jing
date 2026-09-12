@@ -134,7 +134,15 @@ const TestTools = {
     const resetAllBtn = document.getElementById('test-reset-all');
     if (resetAllBtn) {
       resetAllBtn.addEventListener('click', () => {
-        if (confirm('确定要清除所有情绪数据吗？此操作不可恢复！')) {
+        const info = this.getDataSummary();
+        const msg =
+          '⚠️ 确定要清除所有数据吗？\n\n' +
+          '将删除：\n' +
+          `· ${info.records} 条情绪记录\n` +
+          `· ${info.locations} 个自定义地点\n` +
+          '· 所有 AI 总结与成就进度\n\n' +
+          '此操作不可恢复！';
+        if (confirm(msg)) {
           this.resetAll();
         }
       });
@@ -166,10 +174,45 @@ const TestTools = {
   },
 
   /**
-   * 刷新所有模块
+   * 刷新所有模块（重新从 localStorage 载入并重绘）
    */
   refreshAll() {
-    if (typeof CampusMap !== 'undefined') CampusMap.refresh();
+    // 1. 重新载入各模块内存数据
+    if (typeof EmotionRecorder !== 'undefined') EmotionRecorder.loadData();
+    if (typeof EmotionDiary !== 'undefined') EmotionDiary.loadData();
+    if (typeof Achievements !== 'undefined') Achievements.loadData();
+
+    // 2. 地图（内部会 reload locations + emotions，并重绘）
+    if (typeof CampusMap !== 'undefined') {
+      CampusMap.selectedLocation = null;
+      CampusMap.refresh();
+    }
+
+    // 3. 重绘各个视图
+    if (typeof EmotionTimeline !== 'undefined') EmotionTimeline.refresh();
+    if (typeof ExpressionWall !== 'undefined') ExpressionWall.render();
+    if (typeof Achievements !== 'undefined') Achievements.render();
+
+    // 4. 回忆录图表 + 清空 AI 总结展示区
+    if (typeof EmotionCharts !== 'undefined') {
+      EmotionCharts.drawWeeklyTrend('weekly-trend-chart');
+
+      const now = typeof MockDate !== 'undefined' ? MockDate.getDate() : new Date();
+      const todayDist = EmotionRecorder.getDayMoodDistribution(formatDate(now));
+      EmotionCharts.drawMoodDistribution('today-distribution', todayDist);
+      EmotionCharts.drawLocationComparison('location-comparison');
+    }
+
+    const dailyDisplay = document.getElementById('daily-summary-display');
+    const weeklyDisplay = document.getElementById('weekly-summary-display');
+    if (dailyDisplay) dailyDisplay.innerHTML = '';
+    if (weeklyDisplay) weeklyDisplay.innerHTML = '';
+
+    // 5. 关闭可能残留的弹窗
+    const celebrate = document.getElementById('emotion-celebrate');
+    if (celebrate) celebrate.classList.remove('active');
+    const unlock = document.getElementById('achievement-unlock');
+    if (unlock) unlock.classList.remove('active');
   },
 
   /**
@@ -188,8 +231,18 @@ const TestTools = {
     const restoreBtn = document.getElementById('test-restore');
     if (restoreBtn) restoreBtn.disabled = false;
 
-    showToast('💾 数据已备份');
+    const info = this.getDataSummary();
+    showToast(`💾 已备份 ${info.records} 条记录`);
     console.log('📦 数据备份完成:', this._backupData);
+  },
+
+  /**
+   * 获取当前数据摘要（用于提示文案）
+   */
+  getDataSummary() {
+    const records = StorageManager.load('emotion_records') || [];
+    const locations = StorageManager.load('emotion_custom_locations') || [];
+    return { records: records.length, locations: locations.length };
   },
 
   /**
@@ -197,23 +250,27 @@ const TestTools = {
    */
   restore() {
     if (!this._backupData) {
-      showToast('⚠️ 没有备份数据');
+      showToast('⚠️ 还没有备份过数据');
       return;
     }
 
-    if (!confirm('确定要恢复到备份时的数据吗？当前数据将被覆盖！')) return;
+    if (!confirm('确定要恢复到备份时的数据吗？\n当前所有记录将被覆盖。')) return;
 
-    StorageManager.save('emotion_records', this._backupData.emotion_records);
-    StorageManager.save('emotion_custom_locations', this._backupData.emotion_custom_locations);
-    StorageManager.save('emotion_summaries', this._backupData.emotion_summaries);
-    StorageManager.save('emotion_achievements', this._backupData.emotion_achievements);
+    // 写回 localStorage
+    StorageManager.save('emotion_records', this._backupData.emotion_records || []);
+    StorageManager.save('emotion_custom_locations', this._backupData.emotion_custom_locations || []);
+    StorageManager.save('emotion_summaries', this._backupData.emotion_summaries || []);
+    StorageManager.save('emotion_achievements', this._backupData.emotion_achievements || []);
 
     // 恢复日期偏移
     MockDate.jumpTo(this._backupData.mockDateOffset || 0);
     this.updateDateDisplay();
 
+    // 关键：重新载入内存 + 重绘所有视图
     this.refreshAll();
-    showToast('🔄 数据已恢复');
+
+    const info = this.getDataSummary();
+    showToast(`🔄 已恢复 ${info.records} 条记录`);
     console.log('✅ 数据恢复完成');
   },
 
@@ -221,14 +278,62 @@ const TestTools = {
    * 清除所有数据
    */
   resetAll() {
+    // 1. 停止可能正在播放的成就动画
+    if (typeof Achievements !== 'undefined') {
+      if (Achievements._unlockTimer) {
+        clearTimeout(Achievements._unlockTimer);
+        Achievements._unlockTimer = null;
+      }
+      Achievements._unlockQueue = [];
+      Achievements._showingUnlock = false;
+    }
+
+    // 2. 清除 localStorage 中的情绪模块数据
+    const keys = Object.keys(localStorage).filter(k => k.startsWith('tools_emotion'));
+    keys.forEach(k => localStorage.removeItem(k));
+    console.log('🗑️ 已清除存储键:', keys);
+
+    // 3. 清空各模块的内存状态（关键：否则下次保存会把旧数据写回去）
+    if (typeof EmotionRecorder !== 'undefined') {
+      EmotionRecorder.records = [];
+      EmotionRecorder.currentLocation = null;
+    }
+
+    if (typeof CampusMap !== 'undefined') {
+      CampusMap.locations = CampusMap.presetLocations.slice();
+      CampusMap.emotions = [];
+      CampusMap.selectedLocation = null;
+      CampusMap.dragLocation = null;
+      CampusMap.isDragging = false;
+      CampusMap.isPanning = false;
+      CampusMap.view = { scale: 1, x: 0, y: 0 };
+    }
+
+    if (typeof EmotionDiary !== 'undefined') EmotionDiary.summaries = [];
+    if (typeof Achievements !== 'undefined') {
+      Achievements.achievements = [];
+      Achievements._unlockQueue = [];
+      Achievements._showingUnlock = false;
+    }
+    if (typeof EmotionTimeline !== 'undefined') {
+      EmotionTimeline.searchKeyword = '';
+      EmotionTimeline.moodFilter = null;
+      EmotionTimeline.currentPage = 0;
+    }
+
+    // 4. 重置测试用日期
     MockDate.reset();
     this.updateDateDisplay();
 
-    // 清除所有 emotion 相关数据
-    const keys = Object.keys(localStorage).filter(k => k.startsWith('tools_emotion'));
-    keys.forEach(k => localStorage.removeItem(k));
+    // 5. 备份也随之失效，避免"恢复"把已清的数据救回来
+    this._backupData = null;
+    const restoreBtn = document.getElementById('test-restore');
+    if (restoreBtn) restoreBtn.disabled = true;
 
+    // 6. 重绘所有视图
     this.refreshAll();
+
     showToast('🗑️ 所有数据已清除');
+    console.log('✅ 数据清除完成');
   }
 };

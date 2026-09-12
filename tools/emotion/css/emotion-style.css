@@ -85,13 +85,6 @@ body {
   font-weight: 400;
 }
 
-/* 移除旧的装饰元素 */
-.header-deco-left, .header-deco-right,
-.campus-bg-decor,
-.floating-leaf, .cloud {
-  display: none !important;
-}
-
 /* ---- 导航栏 ---- */
 .bottom-nav {
   display: flex;

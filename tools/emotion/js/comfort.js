@@ -155,8 +155,8 @@ const ComfortExperience = {
     const isNarrow = w < 640;
 
     // 按视口面积反推格子尺寸，保证不同屏幕上的"饱满度"一致
-    const target = isNarrow ? 115 : 235;   // 目标气泡数
-    const aspect = isNarrow ? 2.0 : 2.55;  // 格子宽高比
+    const target = isNarrow ? 100 : 195;   // 目标气泡数（气泡变大，数量略降）
+    const aspect = isNarrow ? 2.3 : 3.0;   // 格子宽高比（跟随气泡变宽）
     const cellArea = (w * h) / target;
     const cellH = Math.sqrt(cellArea / aspect);
     const cellW = cellH * aspect;
@@ -200,23 +200,21 @@ const ComfortExperience = {
 
       const bg = this.colors[Math.floor(Math.random() * this.colors.length)];
       const fontSize = isNarrow
-        ? 9.5 + Math.random() * 3.5
-        : 10.5 + Math.random() * 4;
-      const rotate = (Math.random() - 0.5) * 12;
+        ? 12 + Math.random() * 3.5
+        : 14.5 + Math.random() * 4.5;
 
       // 抖动幅度控制在半个格子内，铺满同时不露白
-      const jx = (Math.random() - 0.5) * cw * 0.8;
-      const jy = (Math.random() - 0.5) * ch * 0.72;
+      const jx = (Math.random() - 0.5) * cw * 0.72;
+      const jy = (Math.random() - 0.5) * ch * 0.66;
 
       el.style.background = bg;
       el.style.fontSize = fontSize.toFixed(1) + 'px';
-      el.style.setProperty('--rot', rotate.toFixed(1) + 'deg');
       el.style.left = Math.round(cell.x + jx) + 'px';
       el.style.top = Math.round(cell.y + jy) + 'px';
       el.style.zIndex = String(1 + Math.floor(Math.random() * 6));
 
       frag.appendChild(el);
-      list.push({ el, rot: rotate, order: (i * 7919) % cells.length });
+      list.push({ el, order: (i * 7919) % cells.length });
     });
 
     field.appendChild(frag);
@@ -224,7 +222,7 @@ const ComfortExperience = {
   },
 
   /**
-   * 渐显：每个气泡从全透明淡入，约 0.2 秒，无位移
+   * 渐显：每个气泡从全透明淡入，约 0.2 秒，无位移、无旋转
    */
   _animateIn(bubbles, token) {
     const total = bubbles.length;

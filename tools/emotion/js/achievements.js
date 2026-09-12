@@ -239,15 +239,166 @@ const Achievements = {
 
     if (newUnlocks.length > 0) {
       this.saveData();
-      // 显示解锁通知
-      newUnlocks.forEach(ach => {
-        setTimeout(() => {
-          showToast(`🏆 成就解锁：${ach.icon} ${ach.name}`);
-        }, 500);
-      });
+      // 依次播放解锁特效
+      newUnlocks.forEach(ach => this.enqueueUnlock(ach));
     }
 
     return newUnlocks;
+  },
+
+  /* ==================== 解锁特效 ==================== */
+
+  _unlockQueue: [],
+  _showingUnlock: false,
+  _unlockTimer: null,
+
+  /**
+   * 加入解锁队列
+   */
+  enqueueUnlock(def) {
+    this._unlockQueue.push(def);
+    if (!this._showingUnlock) this.showNextUnlock();
+  },
+
+  /**
+   * 播放下一个解锁特效
+   */
+  showNextUnlock() {
+    const def = this._unlockQueue.shift();
+    if (!def) {
+      this._showingUnlock = false;
+      return;
+    }
+    this._showingUnlock = true;
+
+    // 若"心情已记录"弹窗正在显示，先让位给它，再播放成就特效
+    const celebrate = document.getElementById('emotion-celebrate');
+    const busy = celebrate && celebrate.classList.contains('active');
+    const delay = busy ? 1500 : 350;
+
+    setTimeout(() => {
+      const c = document.getElementById('emotion-celebrate');
+      if (c && c.classList.contains('active')) {
+        c.classList.remove('active');
+      }
+      this.playUnlockEffect(def, () => {
+        setTimeout(() => this.showNextUnlock(), 320);
+      });
+    }, delay);
+  },
+
+  /**
+   * 播放单个成就解锁动画
+   */
+  playUnlockEffect(def, onDone) {
+    const overlay = document.getElementById('achievement-unlock');
+    if (!overlay) {
+      // 兜底：没有弹窗元素时退回 toast
+      showToast(`🏆 成就解锁：${def.icon} ${def.name}`);
+      if (onDone) onDone();
+      return;
+    }
+
+    const iconEl = document.getElementById('ach-badge-icon');
+    const nameEl = document.getElementById('ach-unlock-name');
+    const descEl = document.getElementById('ach-unlock-desc');
+    const particlesEl = document.getElementById('ach-particles');
+
+    if (iconEl) iconEl.textContent = def.icon;
+    if (nameEl) nameEl.textContent = def.name;
+    if (descEl) descEl.textContent = def.description;
+
+    // 生成粒子
+    if (particlesEl) {
+      particlesEl.innerHTML = '';
+      this.spawnUnlockParticles(particlesEl, def);
+    }
+
+    // 显示
+    overlay.classList.remove('active');
+    void overlay.offsetWidth;   // 强制重排以重播动画
+    overlay.classList.add('active');
+
+    // 音效感的视觉反馈：短暂高亮页面主色
+    this.flashAccent();
+
+    // 清理旧监听
+    if (this._overlayClickHandler) {
+      overlay.removeEventListener('click', this._overlayClickHandler);
+    }
+    if (this._unlockTimer) {
+      clearTimeout(this._unlockTimer);
+    }
+
+    let closed = false;
+    const close = () => {
+      if (closed) return;
+      closed = true;
+
+      if (this._unlockTimer) {
+        clearTimeout(this._unlockTimer);
+        this._unlockTimer = null;
+      }
+      overlay.removeEventListener('click', this._overlayClickHandler);
+      this._overlayClickHandler = null;
+
+      overlay.classList.remove('active');
+      setTimeout(() => {
+        if (particlesEl) particlesEl.innerHTML = '';
+        if (onDone) onDone();
+      }, 420);
+    };
+
+    this._overlayClickHandler = close;
+    // 延迟绑定，避免触发的这次点击立刻关闭
+    setTimeout(() => {
+      if (!closed) overlay.addEventListener('click', close);
+    }, 500);
+
+    // 自动关闭
+    this._unlockTimer = setTimeout(close, 4200);
+  },
+
+  /**
+   * 生成爆裂粒子
+   */
+  spawnUnlockParticles(container, def) {
+    const palette = ['✨', '⭐', '🌟', '💫', '🎉', '🎊', '🏆', '💛'];
+    const count = 26;
+
+    for (let i = 0; i < count; i++) {
+      const p = document.createElement('span');
+      p.className = 'ach-particle';
+      p.textContent = palette[Math.floor(Math.random() * palette.length)];
+
+      // 在圆周上均匀分布 + 随机抖动，形成爆裂效果
+      const angle = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.45;
+      const dist = 130 + Math.random() * 130;
+
+      p.style.setProperty('--tx', (Math.cos(angle) * dist).toFixed(1) + 'px');
+      p.style.setProperty('--ty', (Math.sin(angle) * dist - 20).toFixed(1) + 'px');
+      p.style.setProperty('--rot', Math.round((Math.random() - 0.5) * 720) + 'deg');
+      p.style.setProperty('--scale', (0.6 + Math.random() * 0.9).toFixed(2));
+      p.style.setProperty('--dur', (1.0 + Math.random() * 0.9).toFixed(2) + 's');
+      p.style.setProperty('--delay', (0.15 + Math.random() * 0.5).toFixed(2) + 's');
+
+      // 起始位置在徽章附近
+      const startR = 10 + Math.random() * 30;
+      p.style.left = (Math.cos(angle) * startR).toFixed(1) + 'px';
+      p.style.top = (Math.sin(angle) * startR).toFixed(1) + 'px';
+
+      container.appendChild(p);
+    }
+  },
+
+  /**
+   * 页面主色闪烁（增强解锁的仪式感）
+   */
+  flashAccent() {
+    const el = document.createElement('div');
+    el.className = 'ach-accent-flash';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 900);
   },
 
   /**

@@ -47,6 +47,10 @@ const TestTools = {
           <button class="btn-sm btn-secondary" id="test-reset-date" title="回到今天">📅 回到今天</button>
           <button class="btn-sm btn-danger" id="test-reset-all" title="清除所有数据">🗑️ 清除全部</button>
         </div>
+
+        <div class="test-actions">
+          <button class="btn-sm btn-secondary" id="test-preview-ach" title="预览成就解锁特效">🏆 预览成就特效</button>
+        </div>
       </div>
     `;
   },
@@ -133,6 +137,16 @@ const TestTools = {
         if (confirm('确定要清除所有情绪数据吗？此操作不可恢复！')) {
           this.resetAll();
         }
+      });
+    }
+
+    // 预览成就特效
+    const previewAchBtn = document.getElementById('test-preview-ach');
+    if (previewAchBtn) {
+      previewAchBtn.addEventListener('click', () => {
+        const defs = Achievements.definitions;
+        const pick = defs[Math.floor(Math.random() * defs.length)];
+        Achievements.playUnlockEffect(pick, () => {});
       });
     }
   },

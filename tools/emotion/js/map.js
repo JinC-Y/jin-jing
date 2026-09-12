@@ -37,20 +37,34 @@ const CampusMap = {
   moodImages: {},
   moodImagesLoaded: false,
 
-  // 卡通配色
+  // 卡通配色（参考手绘校园地图风格）
   colors: {
-    bg: '#FDF6EC',           // 奶油色背景
-    road: '#F0DFB4',         // 米黄道路
-    roadLine: '#E8D5A0',     // 道路边线
-    grass: '#C5E8B0',        // 浅绿草地
-    grassDark: '#A8D98A',    // 深绿草地
-    water: '#A8D8F0',        // 湖水蓝
-    waterLight: '#C5E8FA',   // 浅湖水
-    tree: '#7AB86A',         // 树木绿
-    treeDark: '#5A9A4A',     // 深树绿
-    treeTrunk: '#C49A6C',    // 树干棕
-    label: '#5A4A3A',        // 标签文字
-    labelBg: '#FFFFFF',      // 标签背景
+    grass: '#8ACB4A',          // 鲜绿草地
+    grassDark: '#6DB234',      // 深绿（描边/阴影）
+    grassLight: '#A6DC6C',     // 浅绿（高光）
+    road: '#FFFFFF',           // 白色小路
+    roadEdge: '#E4F0D0',       // 路缘
+    roadShadow: 'rgba(90,140,50,0.18)',
+    outline: '#4A7A28',        // 深绿描边
+    outlineSoft: 'rgba(74,122,40,0.55)',
+    labelBg: '#FF9F1C',        // 橙色标签
+    labelBgDark: '#E8860A',    // 标签描边
+    labelText: '#FFFFFF',
+    wall: '#FFFFFF',           // 建筑墙体
+    wallShade: '#E8EEF5',      // 墙体暗面
+    roofRed: '#E8552F',        // 红屋顶
+    roofOrange: '#F5A623',     // 橙屋顶
+    roofBlue: '#3E8FD4',       // 蓝屋顶
+    roofBrown: '#B5651D',      // 棕屋顶
+    window: '#7EC8F0',         // 窗户
+    windowDeep: '#4FA8DC',
+    trunk: '#8B5A2B',          // 树干
+    tree: '#7CC242',           // 树冠
+    treeDark: '#57A02A',       // 树冠暗面
+    treeLight: '#A5DC6B',      // 树冠高光
+    water: '#7EC8E3',          // 湖水
+    waterLight: '#B8E4F2',     // 湖水高光
+    sand: '#F2E3B6',           // 沙地/小径
     moodHappy: '#51CF66',
     moodCalm: '#4A90D9',
     moodNeutral: '#FFD43B',
@@ -58,46 +72,90 @@ const CampusMap = {
     moodSad: '#FF6B6B'
   },
 
-  // 预设地点（位置重新规划为更自然的校园布局）
+  // 预设地点（type 决定绘制的卡通建筑样式）
   presetLocations: [
-    { id: 'loc_gate',     name: '校门',     x: 450, y: 620, icon: '🏫', isPreset: true, desc: '梦想的起点' },
-    { id: 'loc_library',  name: '图书馆',   x: 450, y: 380, icon: '📖', isPreset: true, desc: '静谧书海' },
-    { id: 'loc_teaching', name: '教学楼',   x: 320, y: 220, icon: '📚', isPreset: true, desc: '知识的殿堂' },
-    { id: 'loc_canteen',  name: '食堂',     x: 650, y: 180, icon: '🍜', isPreset: true, desc: '美食的天堂' },
-    { id: 'loc_dorm',     name: '寝室',     x: 700, y: 420, icon: '🏠', isPreset: true, desc: '温馨的小窝' },
-    { id: 'loc_gym',      name: '体育馆',   x: 150, y: 430, icon: '🏀', isPreset: true, desc: '挥洒汗水' },
-    { id: 'loc_playground', name: '操场',   x: 160, y: 260, icon: '🏃', isPreset: true, desc: '奔跑吧青春' },
-    { id: 'loc_lab',      name: '实验室',   x: 420, y: 130, icon: '🔬', isPreset: true, desc: '探索未知' },
-    { id: 'loc_park',     name: '小花园',   x: 600, y: 550, icon: '🌸', isPreset: true, desc: '静享花开' },
-    { id: 'loc_lake',     name: '学子湖',   x: 270, y: 520, icon: '🐟', isPreset: true, desc: '湖光潋滟' }
+    { id: 'loc_gate',       name: '校门',   x: 450, y: 645, icon: '🏫', type: 'gate',       isPreset: true, desc: '梦想的起点' },
+    { id: 'loc_library',    name: '图书馆', x: 450, y: 348, icon: '📖', type: 'library',    isPreset: true, desc: '静谧书海' },
+    { id: 'loc_teaching',   name: '教学楼', x: 285, y: 205, icon: '📚', type: 'teaching',   isPreset: true, desc: '知识的殿堂' },
+    { id: 'loc_canteen',    name: '食堂',   x: 665, y: 172, icon: '🍜', type: 'canteen',    isPreset: true, desc: '美食的天堂' },
+    { id: 'loc_dorm',       name: '寝室',   x: 762, y: 425, icon: '🏠', type: 'dorm',       isPreset: true, desc: '温馨的小窝' },
+    { id: 'loc_gym',        name: '体育馆', x: 140, y: 445, icon: '🏀', type: 'gym',        isPreset: true, desc: '挥洒汗水' },
+    { id: 'loc_playground', name: '操场',   x: 152, y: 252, icon: '🏃', type: 'playground', isPreset: true, desc: '奔跑吧青春' },
+    { id: 'loc_lab',        name: '实验室', x: 392, y: 112, icon: '🔬', type: 'lab',        isPreset: true, desc: '探索未知' },
+    { id: 'loc_park',       name: '小花园', x: 620, y: 572, icon: '🌸', type: 'garden',     isPreset: true, desc: '静享花开' },
+    { id: 'loc_lake',       name: '学子湖', x: 255, y: 505, icon: '🐟', type: 'pavilion',   isPreset: true, desc: '湖光潋滟' }
   ],
 
-  // 装饰物（树木、花草、小动物等）
+  // 蜿蜒小路（控制点，绘制时自动平滑）
+  roads: [
+    // 主横路
+    [{ x: 10, y: 415 }, { x: 180, y: 396 }, { x: 400, y: 402 }, { x: 640, y: 408 }, { x: 890, y: 396 }],
+    // 主纵路（校门 → 实验楼）
+    [{ x: 450, y: 60 }, { x: 452, y: 240 }, { x: 448, y: 400 }, { x: 452, y: 560 }, { x: 450, y: 700 }],
+    // 上方横路
+    [{ x: 140, y: 188 }, { x: 300, y: 170 }, { x: 450, y: 182 }, { x: 612, y: 168 }, { x: 790, y: 192 }],
+    // 左上纵路
+    [{ x: 180, y: 396 }, { x: 168, y: 296 }, { x: 140, y: 188 }],
+    // 右上纵路
+    [{ x: 640, y: 408 }, { x: 676, y: 292 }, { x: 790, y: 192 }],
+    // 右下支路
+    [{ x: 640, y: 408 }, { x: 706, y: 486 }, { x: 726, y: 578 }, { x: 800, y: 660 }],
+    // 左下支路（通往小花园与学子湖）
+    [{ x: 452, y: 566 }, { x: 344, y: 592 }, { x: 196, y: 588 }, { x: 90, y: 620 }],
+    // 体育馆连接路
+    [{ x: 168, y: 296 }, { x: 120, y: 372 }, { x: 92, y: 442 }]
+  ],
+
+  // 装饰物（树木、灌木、花丛、云朵）
   decorations: [
-    // 树木
-    { type: 'tree', x: 80,  y: 120, size: 18 },
-    { type: 'tree', x: 130, y: 150, size: 22 },
-    { type: 'tree', x: 50,  y: 300, size: 16 },
-    { type: 'tree', x: 780, y: 100, size: 20 },
-    { type: 'tree', x: 800, y: 300, size: 18 },
-    { type: 'tree', x: 50,  y: 550, size: 14 },
-    { type: 'tree', x: 820, y: 550, size: 16 },
-    { type: 'tree', x: 350, y: 640, size: 14 },
-    { type: 'tree', x: 560, y: 640, size: 16 },
-    { type: 'tree', x: 750, y: 280, size: 14 },
-    // 灌木丛
-    { type: 'bush', x: 100, y: 480, size: 14 },
-    { type: 'bush', x: 750, y: 520, size: 12 },
-    { type: 'bush', x: 380, y: 480, size: 10 },
-    { type: 'bush', x: 530, y: 280, size: 12 },
-    // 小花
-    { type: 'flower', x: 120, y: 600, size: 6 },
-    { type: 'flower', x: 780, y: 600, size: 6 },
-    { type: 'flower', x: 350, y: 560, size: 5 },
-    { type: 'flower', x: 560, y: 560, size: 5 },
-    // 小动物
-    { type: 'cat', x: 830, y: 180, size: 14 },
-    { type: 'bird', x: 100, y: 80, size: 10 }
+    // 树丛（成簇分布，贴近参考图的簇状树林）
+    { type: 'tree', x: 62, y: 92, size: 19 },
+    { type: 'tree', x: 100, y: 128, size: 24 },
+    { type: 'tree', x: 58, y: 152, size: 16 },
+    { type: 'tree', x: 232, y: 92, size: 20 },
+    { type: 'tree', x: 268, y: 128, size: 15 },
+    { type: 'tree', x: 520, y: 78, size: 18 },
+    { type: 'tree', x: 556, y: 108, size: 14 },
+    { type: 'tree', x: 812, y: 92, size: 21 },
+    { type: 'tree', x: 852, y: 132, size: 16 },
+    { type: 'tree', x: 836, y: 246, size: 18 },
+    { type: 'tree', x: 872, y: 288, size: 14 },
+    { type: 'tree', x: 66, y: 258, size: 15 },
+    { type: 'tree', x: 42, y: 316, size: 18 },
+    { type: 'tree', x: 58, y: 508, size: 20 },
+    { type: 'tree', x: 96, y: 542, size: 15 },
+    { type: 'tree', x: 354, y: 662, size: 19 },
+    { type: 'tree', x: 396, y: 684, size: 15 },
+    { type: 'tree', x: 552, y: 660, size: 20 },
+    { type: 'tree', x: 592, y: 686, size: 15 },
+    { type: 'tree', x: 826, y: 546, size: 18 },
+    { type: 'tree', x: 862, y: 592, size: 14 },
+    { type: 'tree', x: 704, y: 640, size: 17 },
+    { type: 'tree', x: 604, y: 470, size: 16 },
+    { type: 'tree', x: 636, y: 502, size: 13 },
+    { type: 'tree', x: 322, y: 452, size: 15 },
+    { type: 'tree', x: 196, y: 660, size: 16 },
+    // 灌木
+    { type: 'bush', x: 148, y: 108, size: 13 },
+    { type: 'bush', x: 488, y: 118, size: 12 },
+    { type: 'bush', x: 760, y: 100, size: 12 },
+    { type: 'bush', x: 88, y: 398, size: 11 },
+    { type: 'bush', x: 520, y: 470, size: 12 },
+    { type: 'bush', x: 268, y: 616, size: 12 },
+    { type: 'bush', x: 640, y: 620, size: 11 },
+    { type: 'bush', x: 792, y: 392, size: 12 },
+    // 花丛
+    { type: 'flower', x: 320, y: 108, size: 6 },
+    { type: 'flower', x: 344, y: 96, size: 5 },
+    { type: 'flower', x: 596, y: 618, size: 6 },
+    { type: 'flower', x: 566, y: 636, size: 5 },
+    { type: 'flower', x: 168, y: 520, size: 6 },
+    { type: 'flower', x: 200, y: 536, size: 5 },
+    { type: 'flower', x: 828, y: 480, size: 5 },
+    // 云朵
+    { type: 'cloud', x: 210, y: 58, size: 22 },
+    { type: 'cloud', x: 690, y: 48, size: 18 },
+    { type: 'cloud', x: 840, y: 148, size: 16 }
   ],
 
   /**
@@ -379,8 +437,22 @@ const CampusMap = {
   findLocationAt(x, y) {
     for (let i = this.locations.length - 1; i >= 0; i--) {
       const loc = this.locations[i];
+
+      // 建筑主体包围盒（含屋顶与台阶）
+      if (x >= loc.x - 37 && x <= loc.x + 37 &&
+          y >= loc.y - 44 && y <= loc.y + 28) {
+        return loc;
+      }
+
+      // 名称标签区域
+      if (x >= loc.x - 50 && x <= loc.x + 50 &&
+          y >= loc.y + 20 && y <= loc.y + 44) {
+        return loc;
+      }
+
+      // 兜底：圆形范围
       const dist = Math.sqrt((x - loc.x) ** 2 + (y - loc.y) ** 2);
-      if (dist <= this.config.locationRadius + 8) {
+      if (dist <= this.config.locationRadius) {
         return loc;
       }
     }
@@ -530,7 +602,7 @@ const CampusMap = {
     ctx.clearRect(0, 0, w, h);
 
     // 画布外围底色（缩放后露出的区域）
-    ctx.fillStyle = '#EFE9DD';
+    ctx.fillStyle = this.colors.grassDark;
     ctx.fillRect(0, 0, w, h);
 
     // ---- 应用视图变换（世界坐标层） ----
@@ -538,17 +610,10 @@ const CampusMap = {
     ctx.translate(this.view.x, this.view.y);
     ctx.scale(this.view.scale, this.view.scale);
 
-    // 1. 奶油色背景
     this.drawBackground(ctx, w, h);
-    // 2. 草地区域
-    this.drawGrassAreas(ctx);
-    // 3. 道路
-    this.drawRoads(ctx, w, h);
-    // 4. 湖泊
     this.drawLake(ctx);
-    // 5. 装饰物（树、花、动物）
+    this.drawRoads(ctx);
     this.drawDecorations(ctx);
-    // 6. 地点
     this.locations.forEach(loc => this.drawLocation(ctx, loc));
 
     ctx.restore();
@@ -562,11 +627,11 @@ const CampusMap = {
     if (!container) return;
 
     const items = [
-      { img: 'assets/happy.png',   label: '开心', color: this.colors.moodHappy },
-      { img: 'assets/calm.png',    label: '平静', color: this.colors.moodCalm },
-      { img: 'assets/nutral.png',  label: '一般', color: this.colors.moodNeutral },
-      { img: 'assets/anxious.png', label: '焦虑', color: this.colors.moodAnxious },
-      { img: 'assets/sad.png',     label: '低落', color: this.colors.moodSad }
+      { img: 'assets/happy.png',   label: '开心' },
+      { img: 'assets/calm.png',    label: '平静' },
+      { img: 'assets/nutral.png',  label: '一般' },
+      { img: 'assets/anxious.png', label: '焦虑' },
+      { img: 'assets/sad.png',     label: '低落' }
     ];
 
     container.innerHTML = `
@@ -584,7 +649,6 @@ const CampusMap = {
       </div>
     `;
 
-    // 重新绑定折叠事件
     const toggle = container.querySelector('#legend-toggle');
     if (toggle) {
       toggle.addEventListener('click', () => {
@@ -593,455 +657,851 @@ const CampusMap = {
     }
   },
 
+  /* ---------- 基础图元工具 ---------- */
+
   /**
-   * 奶油色背景 + 微妙纹理
+   * 绘制带描边的矩形
+   */
+  box(ctx, x, y, w, h, fill, stroke, lw, r) {
+    this.roundRect(ctx, x, y, w, h, r || 0);
+    if (fill) {
+      ctx.fillStyle = fill;
+      ctx.fill();
+    }
+    if (stroke) {
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = lw || 2;
+      ctx.stroke();
+    }
+  },
+
+  /**
+   * 把多个圆合并成一个轮廓（用于树冠等有机形状）
+   */
+  blob(ctx, circles, fill, stroke, lw) {
+    ctx.beginPath();
+    circles.forEach(c => {
+      ctx.moveTo(c[0] + c[2], c[1]);
+      ctx.arc(c[0], c[1], c[2], 0, Math.PI * 2);
+    });
+    if (fill) {
+      ctx.fillStyle = fill;
+      ctx.fill();
+    }
+    if (stroke) {
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = lw || 2;
+      ctx.stroke();
+    }
+  },
+
+  /* ---------- 背景与道路 ---------- */
+
+  /**
+   * 鲜绿草地 + 柔和色块肌理
    */
   drawBackground(ctx, w, h) {
-    // 主背景
-    ctx.fillStyle = this.colors.bg;
+    ctx.fillStyle = this.colors.grass;
     ctx.fillRect(0, 0, w, h);
 
-    // 微妙的网格纹理
-    ctx.strokeStyle = 'rgba(0,0,0,0.015)';
-    ctx.lineWidth = 0.5;
-    for (let x = 0; x < w; x += 30) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, h);
-      ctx.stroke();
-    }
-    for (let y = 0; y < h; y += 30) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(w, y);
-      ctx.stroke();
-    }
-  },
-
-  /**
-   * 绘制草地区域（圆润的有机形状）
-   */
-  drawGrassAreas(ctx) {
-    const grassAreas = [
-      { x: 80,  y: 180, rx: 70, ry: 50 },
-      { x: 780, y: 160, rx: 60, ry: 45 },
-      { x: 60,  y: 420, rx: 55, ry: 40 },
-      { x: 800, y: 450, rx: 50, ry: 35 },
-      { x: 200, y: 600, rx: 80, ry: 40 },
-      { x: 700, y: 600, rx: 70, ry: 35 }
-    ];
-
-    grassAreas.forEach(area => {
-      ctx.save();
-      ctx.globalAlpha = 0.5;
-      ctx.fillStyle = this.colors.grass;
-      ctx.beginPath();
-      ctx.ellipse(area.x, area.y, area.rx, area.ry, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    });
-  },
-
-  /**
-   * 绘制道路（温暖的米黄色带状路）
-   */
-  drawRoads(ctx, w, h) {
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-
-    // 横向主路（从校门往上的主干道）
-    this.drawSmoothRoad(ctx, [
-      { x: 50, y: 400 },
-      { x: 200, y: 390 },
-      { x: 450, y: 380 },
-      { x: 700, y: 390 },
-      { x: 860, y: 400 }
-    ], 28);
-
-    // 纵向主路（从校门到实验室）
-    this.drawSmoothRoad(ctx, [
-      { x: 450, y: 660 },
-      { x: 450, y: 550 },
-      { x: 450, y: 400 },
-      { x: 450, y: 250 },
-      { x: 450, y: 100 }
-    ], 28);
-
-    // 左侧支路
-    this.drawSmoothRoad(ctx, [
-      { x: 200, y: 390 },
-      { x: 180, y: 300 },
-      { x: 160, y: 200 }
-    ], 18);
-
-    // 右侧支路
-    this.drawSmoothRoad(ctx, [
-      { x: 700, y: 390 },
-      { x: 680, y: 300 },
-      { x: 660, y: 200 }
-    ], 18);
-
-    // 上方横路
-    this.drawSmoothRoad(ctx, [
-      { x: 160, y: 180 },
-      { x: 300, y: 170 },
-      { x: 450, y: 160 },
-      { x: 600, y: 170 },
-      { x: 700, y: 180 }
-    ], 16);
-
-    // 下方支路（通往寝室区）
-    this.drawSmoothRoad(ctx, [
-      { x: 700, y: 390 },
-      { x: 720, y: 450 },
-      { x: 700, y: 520 }
-    ], 16);
-
-    // 左下支路（通往小花园和湖）
-    this.drawSmoothRoad(ctx, [
-      { x: 450, y: 550 },
-      { x: 350, y: 560 },
-      { x: 250, y: 550 }
-    ], 16);
-  },
-
-  /**
-   * 绘制平滑道路
-   */
-  drawSmoothRoad(ctx, points, width) {
-    if (points.length < 2) return;
-
-    // 道路阴影
+    // 浅绿斑块，避免大面积纯色显得呆板
     ctx.save();
-    ctx.strokeStyle = 'rgba(0,0,0,0.05)';
-    ctx.lineWidth = width + 6;
-    ctx.beginPath();
-    ctx.moveTo(points[0].x, points[0].y + 2);
-    for (let i = 1; i < points.length; i++) {
-      ctx.lineTo(points[i].x, points[i].y + 2);
-    }
-    ctx.stroke();
+    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = this.colors.grassLight;
+    [
+      [130, 95, 140, 78], [390, 62, 155, 70], [706, 96, 145, 76],
+      [86, 566, 155, 80], [420, 646, 165, 68], [748, 566, 150, 78],
+      [62, 336, 122, 72], [828, 338, 132, 80],
+      [470, 470, 120, 62], [300, 330, 110, 58]
+    ].forEach(p => {
+      ctx.beginPath();
+      ctx.ellipse(p[0], p[1], p[2], p[3], 0, 0, Math.PI * 2);
+      ctx.fill();
+    });
     ctx.restore();
-
-    // 道路主体
-    ctx.strokeStyle = this.colors.road;
-    ctx.lineWidth = width;
-    ctx.beginPath();
-    ctx.moveTo(points[0].x, points[0].y);
-    for (let i = 1; i < points.length; i++) {
-      ctx.lineTo(points[i].x, points[i].y);
-    }
-    ctx.stroke();
-
-    // 道路边线（虚线）
-    ctx.strokeStyle = this.colors.roadLine;
-    ctx.lineWidth = 1;
-    ctx.setLineDash([6, 8]);
-    ctx.beginPath();
-    ctx.moveTo(points[0].x, points[0].y);
-    for (let i = 1; i < points.length; i++) {
-      ctx.lineTo(points[i].x, points[i].y);
-    }
-    ctx.stroke();
-    ctx.setLineDash([]);
   },
 
   /**
-   * 绘制学子湖（不规则有机形状）
+   * 学子湖
    */
   drawLake(ctx) {
-    const cx = 270, cy = 520;
+    const cx = 255, cy = 505, rx = 86, ry = 56;
 
-    // 湖水阴影
+    // 岸边沙地
     ctx.save();
-    ctx.fillStyle = 'rgba(0,0,0,0.05)';
+    ctx.fillStyle = this.colors.sand;
     ctx.beginPath();
-    ctx.ellipse(cx + 2, cy + 3, 72, 48, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx, cy + 3, rx + 11, ry + 10, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
-    // 湖水主体
+    // 水面
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
     ctx.fillStyle = this.colors.water;
-    ctx.beginPath();
-    ctx.ellipse(cx, cy, 70, 45, 0, 0, Math.PI * 2);
     ctx.fill();
+    ctx.strokeStyle = this.colors.outlineSoft;
+    ctx.lineWidth = 2.2;
+    ctx.stroke();
 
-    // 湖水高光
+    // 水波高光
     ctx.save();
-    ctx.globalAlpha = 0.3;
-    ctx.fillStyle = this.colors.waterLight;
-    ctx.beginPath();
-    ctx.ellipse(cx - 15, cy - 10, 30, 18, -0.3, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.strokeStyle = this.colors.waterLight;
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    [[-42, -18, 28], [4, 4, 32], [-16, 24, 22], [30, -22, 20]].forEach(a => {
+      ctx.beginPath();
+      ctx.moveTo(cx + a[0], cy + a[1]);
+      ctx.quadraticCurveTo(cx + a[0] + a[2] / 2, cy + a[1] - 6, cx + a[0] + a[2], cy + a[1]);
+      ctx.stroke();
+    });
     ctx.restore();
 
     // 荷叶
     ctx.save();
-    ctx.globalAlpha = 0.6;
-    ctx.fillStyle = '#7AB86A';
-    ctx.beginPath();
-    ctx.ellipse(cx + 25, cy + 8, 8, 6, 0.2, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(cx - 20, cy + 15, 6, 5, -0.1, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.fillStyle = '#5AA02A';
+    ctx.strokeStyle = this.colors.outlineSoft;
+    ctx.lineWidth = 1.4;
+    [[-34, 12, 11], [26, 20, 8], [40, -6, 7]].forEach(p => {
+      ctx.beginPath();
+      ctx.ellipse(cx + p[0], cy + p[1], p[2], p[2] * 0.72, 0.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    });
     ctx.restore();
-
-    // 湖泊标签
-    ctx.fillStyle = '#3A7BC8';
-    ctx.font = 'bold 11px "PingFang SC", "Microsoft YaHei", sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('学子湖', cx, cy + 30);
   },
 
   /**
-   * 绘制装饰物
+   * 平滑曲线路径（把控制点串成蜿蜒小路）
    */
+  tracePath(ctx, pts) {
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    if (pts.length === 2) {
+      ctx.lineTo(pts[1].x, pts[1].y);
+      return;
+    }
+    for (let i = 1; i < pts.length - 1; i++) {
+      const mx = (pts[i].x + pts[i + 1].x) / 2;
+      const my = (pts[i].y + pts[i + 1].y) / 2;
+      ctx.quadraticCurveTo(pts[i].x, pts[i].y, mx, my);
+    }
+    const last = pts[pts.length - 1];
+    ctx.lineTo(last.x, last.y);
+  },
+
+  /**
+   * 白色蜿蜒小路
+   */
+  drawRoads(ctx) {
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    // 路缘阴影
+    ctx.strokeStyle = this.colors.roadShadow;
+    ctx.lineWidth = 31;
+    this.roads.forEach(pts => {
+      this.tracePath(ctx, pts);
+      ctx.stroke();
+    });
+
+    // 白色路面
+    ctx.strokeStyle = this.colors.road;
+    ctx.lineWidth = 25;
+    this.roads.forEach(pts => {
+      this.tracePath(ctx, pts);
+      ctx.stroke();
+    });
+
+    ctx.restore();
+  },
+
+  /* ---------- 装饰物 ---------- */
+
   drawDecorations(ctx) {
     this.decorations.forEach(d => {
       switch (d.type) {
         case 'tree':   this.drawTree(ctx, d.x, d.y, d.size); break;
         case 'bush':   this.drawBush(ctx, d.x, d.y, d.size); break;
         case 'flower': this.drawFlower(ctx, d.x, d.y, d.size); break;
-        case 'cat':    this.drawCat(ctx, d.x, d.y, d.size); break;
-        case 'bird':   this.drawBird(ctx, d.x, d.y, d.size); break;
+        case 'cloud':  this.drawCloud(ctx, d.x, d.y, d.size); break;
       }
     });
   },
 
   /**
-   * 绘制卡通树
+   * 卡通树（簇状树冠 + 描边 + 高光）
    */
-  drawTree(ctx, x, y, size) {
+  drawTree(ctx, x, y, s) {
+    const o = this.colors.outline;
+
     // 树干
-    ctx.fillStyle = this.colors.treeTrunk;
-    ctx.fillRect(x - size * 0.12, y - size * 0.1, size * 0.24, size * 0.6);
-
-    // 树冠（多层圆形）
-    ctx.fillStyle = this.colors.tree;
     ctx.beginPath();
-    ctx.arc(x, y - size * 0.3, size * 0.55, 0, Math.PI * 2);
+    ctx.moveTo(x - s * 0.12, y + s * 0.34);
+    ctx.lineTo(x - s * 0.08, y - s * 0.06);
+    ctx.lineTo(x + s * 0.08, y - s * 0.06);
+    ctx.lineTo(x + s * 0.12, y + s * 0.34);
+    ctx.closePath();
+    ctx.fillStyle = this.colors.trunk;
     ctx.fill();
+    ctx.strokeStyle = this.colors.outlineSoft;
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
 
-    ctx.fillStyle = this.colors.grassDark;
-    ctx.beginPath();
-    ctx.arc(x - size * 0.2, y - size * 0.15, size * 0.35, 0, Math.PI * 2);
-    ctx.fill();
+    // 树冠暗面（整体轮廓）
+    this.blob(ctx, [
+      [x, y - s * 0.24, s * 0.56],
+      [x - s * 0.36, y - s * 0.10, s * 0.40],
+      [x + s * 0.36, y - s * 0.10, s * 0.40]
+    ], this.colors.treeDark, o, 1.7);
 
-    ctx.fillStyle = this.colors.treeDark;
-    ctx.beginPath();
-    ctx.arc(x + size * 0.2, y - size * 0.2, size * 0.3, 0, Math.PI * 2);
-    ctx.fill();
+    // 树冠亮面
+    this.blob(ctx, [
+      [x - s * 0.05, y - s * 0.36, s * 0.46],
+      [x + s * 0.24, y - s * 0.20, s * 0.32],
+      [x - s * 0.27, y - s * 0.22, s * 0.30]
+    ], this.colors.tree, null);
 
     // 高光
-    ctx.save();
-    ctx.globalAlpha = 0.3;
-    ctx.fillStyle = '#FFFFFF';
+    this.blob(ctx, [
+      [x - s * 0.16, y - s * 0.48, s * 0.22]
+    ], this.colors.treeLight, null);
+  },
+
+  /**
+   * 灌木丛
+   */
+  drawBush(ctx, x, y, s) {
+    const o = this.colors.outline;
+    this.blob(ctx, [
+      [x, y, s], [x - s * 0.62, y + s * 0.12, s * 0.72], [x + s * 0.62, y + s * 0.12, s * 0.72]
+    ], this.colors.treeDark, o, 1.5);
+
+    this.blob(ctx, [
+      [x - s * 0.14, y - s * 0.24, s * 0.66], [x + s * 0.36, y - s * 0.10, s * 0.48]
+    ], this.colors.tree, null);
+
+    this.blob(ctx, [[x - s * 0.24, y - s * 0.34, s * 0.30]], this.colors.treeLight, null);
+  },
+
+  /**
+   * 小花
+   */
+  drawFlower(ctx, x, y, s) {
+    const o = 'rgba(74,122,40,0.5)';
+    const petals = ['#FF6B8A', '#FFD166', '#FF9F1C', '#E86A92'];
+    for (let i = 0; i < 4; i++) {
+      const a = (i * Math.PI) / 2 + 0.4;
+      ctx.beginPath();
+      ctx.ellipse(x + Math.cos(a) * s, y + Math.sin(a) * s, s * 0.62, s * 0.44, a, 0, Math.PI * 2);
+      ctx.fillStyle = petals[i];
+      ctx.fill();
+      ctx.strokeStyle = o;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
     ctx.beginPath();
-    ctx.arc(x - size * 0.15, y - size * 0.45, size * 0.15, 0, Math.PI * 2);
+    ctx.arc(x, y, s * 0.38, 0, Math.PI * 2);
+    ctx.fillStyle = '#FFE066';
     ctx.fill();
+    ctx.strokeStyle = o;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  },
+
+  /**
+   * 云朵
+   */
+  drawCloud(ctx, x, y, s) {
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    this.blob(ctx, [
+      [x, y, s * 0.72], [x - s * 0.72, y + s * 0.16, s * 0.5], [x + s * 0.74, y + s * 0.14, s * 0.52]
+    ], '#FFFFFF', 'rgba(255,255,255,0.9)', 1);
     ctx.restore();
   },
 
-  /**
-   * 绘制灌木丛
-   */
-  drawBush(ctx, x, y, size) {
-    ctx.fillStyle = this.colors.grassDark;
-    ctx.beginPath();
-    ctx.arc(x, y, size, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = this.colors.grass;
-    ctx.beginPath();
-    ctx.arc(x - size * 0.5, y + size * 0.1, size * 0.7, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = this.colors.tree;
-    ctx.beginPath();
-    ctx.arc(x + size * 0.4, y - size * 0.1, size * 0.65, 0, Math.PI * 2);
-    ctx.fill();
-  },
+  /* ---------- 地点 ---------- */
 
   /**
-   * 绘制小花
-   */
-  drawFlower(ctx, x, y, size) {
-    // 花瓣
-    const petalColors = ['#FF9EAA', '#FFD43B', '#FF9EAA', '#E8A0FF'];
-    for (let i = 0; i < 4; i++) {
-      const angle = (i * Math.PI) / 2;
-      ctx.fillStyle = petalColors[i];
-      ctx.beginPath();
-      ctx.ellipse(
-        x + Math.cos(angle) * size,
-        y + Math.sin(angle) * size,
-        size * 0.6, size * 0.4,
-        angle, 0, Math.PI * 2
-      );
-      ctx.fill();
-    }
-    // 花芯
-    ctx.fillStyle = '#FFD43B';
-    ctx.beginPath();
-    ctx.arc(x, y, size * 0.35, 0, Math.PI * 2);
-    ctx.fill();
-  },
-
-  /**
-   * 绘制小猫
-   */
-  drawCat(ctx, x, y, size) {
-    ctx.font = `${size * 2}px sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('🐱', x, y);
-  },
-
-  /**
-   * 绘制小鸟
-   */
-  drawBird(ctx, x, y, size) {
-    ctx.font = `${size * 1.8}px sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('🐦', x, y);
-  },
-
-  /**
-   * 绘制单个地点（卡通卡片风格）
+   * 绘制单个地点：光晕 + 阴影 + 卡通建筑 + 心情徽章 + 标签
    */
   drawLocation(ctx, loc) {
     const isSelected = this.selectedLocation && this.selectedLocation.id === loc.id;
     const moodColor = this.getLocationMoodColor(loc.id);
-    const weather = this.getLocationWeather(loc.id);
-    const r = this.config.locationRadius;
+    const moodLevel = this.getLocationMoodLevel(loc.id);
+    const cx = loc.x;
+    const by = loc.y + 22;          // 建筑底部基线
 
-    // ---- 情绪光晕（柔和的呼吸感） ----
+    // ---- 情绪光晕 ----
     if (moodColor) {
       ctx.save();
-      ctx.globalAlpha = 0.2;
-      const gradient = ctx.createRadialGradient(loc.x, loc.y, r * 0.5, loc.x, loc.y, r + 20);
-      gradient.addColorStop(0, moodColor);
-      gradient.addColorStop(1, 'rgba(255,255,255,0)');
-      ctx.fillStyle = gradient;
+      const g = ctx.createRadialGradient(cx, loc.y - 8, 8, cx, loc.y - 8, 78);
+      g.addColorStop(0, this.hexToRGBA(moodColor, 0.36));
+      g.addColorStop(0.55, this.hexToRGBA(moodColor, 0.14));
+      g.addColorStop(1, this.hexToRGBA(moodColor, 0));
+      ctx.fillStyle = g;
       ctx.beginPath();
-      ctx.arc(loc.x, loc.y, r + 20, 0, Math.PI * 2);
+      ctx.arc(cx, loc.y - 8, 78, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     }
 
-    // ---- 地点卡片底座（圆角矩形） ----
-    const cardW = 64, cardH = 64;
-    const cardX = loc.x - cardW / 2;
-    const cardY = loc.y - cardH / 2;
-
-    // 卡片阴影
-    ctx.save();
-    ctx.fillStyle = 'rgba(0,0,0,0.08)';
-    this.roundRect(ctx, cardX + 2, cardY + 3, cardW, cardH, 14);
-    ctx.fill();
-    ctx.restore();
-
-    // 卡片背景
-    ctx.save();
-    if (isSelected) {
-      const selGrad = ctx.createLinearGradient(cardX, cardY, cardX, cardY + cardH);
-      selGrad.addColorStop(0, '#E8F4FD');
-      selGrad.addColorStop(1, '#FFFFFF');
-      ctx.fillStyle = selGrad;
-      ctx.strokeStyle = '#4A90D9';
-      ctx.lineWidth = 3;
-    } else if (moodColor) {
-      const mGrad = ctx.createLinearGradient(cardX, cardY, cardX, cardY + cardH);
-      mGrad.addColorStop(0, this.hexToRGBA(moodColor, 0.12));
-      mGrad.addColorStop(1, '#FFFFFF');
-      ctx.fillStyle = mGrad;
-      ctx.strokeStyle = this.hexToRGBA(moodColor, 0.5);
-      ctx.lineWidth = 2;
-    } else {
-      ctx.fillStyle = '#FFFFFF';
-      ctx.strokeStyle = '#E8E0D0';
-      ctx.lineWidth = 2;
-    }
-    this.roundRect(ctx, cardX, cardY, cardW, cardH, 14);
-    ctx.fill();
-    ctx.stroke();
-    ctx.restore();
-
-    // ---- Emoji / 心情图片 ----
-    const moodLevel = this.getLocationMoodLevel(loc.id);
-    if (moodLevel && this.moodImagesLoaded && this.moodImages[moodLevel]) {
-      // 有心情记录且图片已加载，绘制心情图片
-      const moodImg = this.moodImages[moodLevel];
-      const imgSize = 36;
-      ctx.drawImage(moodImg, loc.x - imgSize / 2, loc.y - imgSize / 2 - 2, imgSize, imgSize);
-    } else {
-      // 无心情记录或图片未加载，显示 emoji
-      ctx.font = '30px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(loc.icon, loc.x, loc.y - 1);
-    }
-
-    // ---- 天气小图标 ----
-    if (weather) {
-      ctx.font = '14px sans-serif';
-      ctx.fillText(weather, loc.x + r - 2, loc.y - r + 6);
-    }
-
-    // ---- 地点名称标签（圆角气泡） ----
-    this.drawLabel(ctx, loc.x, loc.y + cardH / 2 + 10, loc.name, isSelected, moodColor);
-
-    // ---- 选中时的动画边框 ----
+    // ---- 选中虚线光圈 ----
     if (isSelected) {
       ctx.save();
-      ctx.strokeStyle = '#4A90D9';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([4, 4]);
-      ctx.lineDashOffset = -(Date.now() / 50) % 8;
-      this.roundRect(ctx, cardX - 4, cardY - 4, cardW + 8, cardH + 8, 16);
+      ctx.strokeStyle = '#FF7A00';
+      ctx.lineWidth = 2.6;
+      ctx.setLineDash([7, 6]);
+      ctx.lineDashOffset = -(Date.now() / 60) % 13;
+      ctx.beginPath();
+      ctx.arc(cx, loc.y - 6, 54, 0, Math.PI * 2);
       ctx.stroke();
       ctx.setLineDash([]);
       ctx.restore();
     }
+
+    // ---- 地面投影 ----
+    ctx.save();
+    ctx.fillStyle = 'rgba(58,102,28,0.20)';
+    ctx.beginPath();
+    ctx.ellipse(cx, by - 1, 33, 8.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // ---- 建筑 ----
+    this.drawBuilding(ctx, loc, cx, by);
+
+    // ---- 心情徽章 ----
+    if (moodLevel && this.moodImagesLoaded && this.moodImages[moodLevel]) {
+      this.drawMoodBadge(ctx, cx + 33, by - 54, this.moodImages[moodLevel], moodColor);
+    }
+
+    // ---- 名称标签 ----
+    this.drawLabel(ctx, cx, by + 13, loc.name, isSelected, moodColor);
   },
 
   /**
-   * 绘制圆角标签
+   * 心情徽章（圆形裁剪的素材图）
    */
-  drawLabel(ctx, x, y, text, isSelected, moodColor) {
-    ctx.font = 'bold 12px "PingFang SC", "Microsoft YaHei", sans-serif';
-    const textWidth = ctx.measureText(text).width;
-    const padX = 10, padY = 5;
-    const labelW = textWidth + padX * 2;
-    const labelH = 20;
-    const labelX = x - labelW / 2;
-    const labelY = y;
+  drawMoodBadge(ctx, x, y, img, moodColor) {
+    const r = 16;
 
-    // 标签背景
     ctx.save();
-    if (isSelected) {
-      ctx.fillStyle = '#4A90D9';
-    } else if (moodColor) {
-      ctx.fillStyle = this.hexToRGBA(moodColor, 0.15);
-    } else {
-      ctx.fillStyle = 'rgba(255,255,255,0.92)';
-    }
-    ctx.strokeStyle = isSelected ? '#4A90D9' : (moodColor || '#E8E0D0');
-    ctx.lineWidth = 1.5;
-    this.roundRect(ctx, labelX, labelY, labelW, labelH, 10);
-    ctx.fill();
-    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(x - r, y - r, r * 2, r * 2);
+    ctx.drawImage(img, x - r, y - r, r * 2, r * 2);
     ctx.restore();
 
-    // 标签文字
-    ctx.fillStyle = isSelected ? '#FFFFFF' : this.colors.label;
-    ctx.font = 'bold 12px "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 4.5;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(x, y, r + 0.6, 0, Math.PI * 2);
+    ctx.strokeStyle = moodColor || this.colors.outline;
+    ctx.lineWidth = 2.2;
+    ctx.stroke();
+  },
+
+  /**
+   * 建筑分发
+   */
+  drawBuilding(ctx, loc, cx, by) {
+    const type = loc.isPreset ? (loc.type || 'house') : 'house';
+    switch (type) {
+      case 'teaching':   return this.bTeaching(ctx, cx, by);
+      case 'library':    return this.bLibrary(ctx, cx, by);
+      case 'canteen':    return this.bCanteen(ctx, cx, by);
+      case 'dorm':       return this.bDorm(ctx, cx, by);
+      case 'gym':        return this.bGym(ctx, cx, by);
+      case 'playground': return this.bPlayground(ctx, cx, by);
+      case 'lab':        return this.bLab(ctx, cx, by);
+      case 'gate':       return this.bGate(ctx, cx, by);
+      case 'garden':     return this.bGarden(ctx, cx, by);
+      case 'pavilion':   return this.bPavilion(ctx, cx, by);
+      default:           return this.bHouse(ctx, cx, by, loc.icon);
+    }
+  },
+
+  /**
+   * 教学楼
+   */
+  bTeaching(ctx, cx, by) {
+    const o = this.colors.outline;
+    const w = 62, h = 32;
+    const x = cx - w / 2;
+    const y = by - 6 - h;
+
+    // 背后副楼
+    this.box(ctx, x - 15, by - 6 - 24, 17, 24, this.colors.wallShade, o, 1.7);
+
+    // 台阶
+    this.box(ctx, cx - 30, by - 6, 60, 6, this.colors.wallShade, o, 1.6);
+
+    // 主体
+    this.box(ctx, x, y, w, h, this.colors.wall, o, 2);
+
+    // 挑檐屋顶
+    this.box(ctx, x - 5, y - 9, w + 10, 10, this.colors.roofRed, o, 2, 2);
+
+    // 窗户
+    for (let r = 0; r < 2; r++) {
+      for (let c = 0; c < 4; c++) {
+        this.box(ctx, x + 6 + c * 13, y + 6 + r * 12, 9, 8, this.colors.window, o, 1.2, 1.5);
+      }
+    }
+
+    // 门
+    this.box(ctx, cx - 7, by - 6 - 14, 14, 14, this.colors.roofBrown, o, 1.6, 2);
+  },
+
+  /**
+   * 图书馆（山墙 + 柱廊）
+   */
+  bLibrary(ctx, cx, by) {
+    const o = this.colors.outline;
+    const w = 62;
+
+    // 台阶
+    this.box(ctx, cx - 33, by - 6, 66, 6, this.colors.wallShade, o, 1.6);
+
+    // 主体
+    this.box(ctx, cx - w / 2, by - 36, w, 30, this.colors.wall, o, 2);
+
+    // 山墙
+    ctx.beginPath();
+    ctx.moveTo(cx - w / 2 - 5, by - 36);
+    ctx.lineTo(cx, by - 58);
+    ctx.lineTo(cx + w / 2 + 5, by - 36);
+    ctx.closePath();
+    ctx.fillStyle = this.colors.roofRed;
+    ctx.fill();
+    ctx.strokeStyle = o;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 圆窗
+    ctx.beginPath();
+    ctx.arc(cx, by - 45, 4.6, 0, Math.PI * 2);
+    ctx.fillStyle = '#FFF3C4';
+    ctx.fill();
+    ctx.strokeStyle = o;
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+
+    // 柱廊
+    for (let i = 0; i < 5; i++) {
+      this.box(ctx, cx - w / 2 + 5 + i * 12, by - 32, 5, 26, '#FFFFFF', o, 1.3, 1);
+    }
+  },
+
+  /**
+   * 食堂（条纹雨棚）
+   */
+  bCanteen(ctx, cx, by) {
+    const o = this.colors.outline;
+    const w = 56, h = 24;
+    const x = cx - w / 2;
+    const y = by - 6 - h;
+
+    this.box(ctx, cx - 28, by - 6, 56, 6, this.colors.wallShade, o, 1.6);
+    this.box(ctx, x, y, w, h, this.colors.wall, o, 2);
+
+    // 雨棚
+    const aw = w + 12, ax = x - 6, ay = y - 11;
+    this.box(ctx, ax, ay, aw, 12, this.colors.roofRed, o, 2, 3);
+    ctx.save();
+    this.roundRect(ctx, ax, ay, aw, 12, 3);
+    ctx.clip();
+    ctx.fillStyle = '#FFFFFF';
+    for (let i = 0; i < 6; i++) {
+      ctx.fillRect(ax + i * 11.4 + 5.7, ay, 5.7, 12);
+    }
+    ctx.restore();
+    this.roundRect(ctx, ax, ay, aw, 12, 3);
+    ctx.strokeStyle = o;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 落地窗
+    this.box(ctx, x + 7, y + 6, w - 14, 12, this.colors.window, o, 1.4, 2);
+
+    // 门
+    this.box(ctx, cx - 6, by - 6 - 11, 12, 11, this.colors.roofBrown, o, 1.5, 2);
+  },
+
+  /**
+   * 寝室楼
+   */
+  bDorm(ctx, cx, by) {
+    const o = this.colors.outline;
+    const w = 46, h = 50;
+    const x = cx - w / 2;
+    const y = by - 6 - h;
+
+    this.box(ctx, cx - 24, by - 6, 48, 6, this.colors.wallShade, o, 1.6);
+    this.box(ctx, x, y, w, h, this.colors.wall, o, 2);
+    this.box(ctx, x - 4, y - 9, w + 8, 10, this.colors.roofOrange, o, 2, 2);
+
+    for (let r = 0; r < 3; r++) {
+      for (let c = 0; c < 3; c++) {
+        this.box(ctx, x + 7 + c * 12, y + 7 + r * 12, 8, 8, this.colors.window, o, 1.1, 1.5);
+      }
+    }
+
+    this.box(ctx, cx - 6, by - 6 - 12, 12, 12, this.colors.roofBrown, o, 1.5, 2);
+  },
+
+  /**
+   * 体育馆（拱顶）
+   */
+  bGym(ctx, cx, by) {
+    const o = this.colors.outline;
+    const w = 58, h = 20;
+    const x = cx - w / 2;
+    const y = by - 6 - h;
+
+    this.box(ctx, cx - 30, by - 6, 60, 6, this.colors.wallShade, o, 1.6);
+    this.box(ctx, x, y, w, h, this.colors.wall, o, 2);
+
+    // 拱形屋顶
+    ctx.beginPath();
+    ctx.moveTo(x - 5, y);
+    ctx.quadraticCurveTo(cx, y - 30, x + w + 5, y);
+    ctx.closePath();
+    ctx.fillStyle = this.colors.roofBlue;
+    ctx.fill();
+    ctx.strokeStyle = o;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 拱顶条纹
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x - 5, y);
+    ctx.quadraticCurveTo(cx, y - 30, x + w + 5, y);
+    ctx.closePath();
+    ctx.clip();
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+    ctx.lineWidth = 2;
+    for (let i = -3; i <= 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(cx + i * 10, y + 4);
+      ctx.lineTo(cx + i * 15, y - 30);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // 门窗
+    this.box(ctx, x + 8, y + 5, 14, 9, this.colors.window, o, 1.3, 1.5);
+    this.box(ctx, x + w - 22, y + 5, 14, 9, this.colors.window, o, 1.3, 1.5);
+    this.box(ctx, cx - 7, by - 6 - 12, 14, 12, this.colors.roofBrown, o, 1.5, 2);
+  },
+
+  /**
+   * 操场（跑道）
+   */
+  bPlayground(ctx, cx, by) {
+    const o = this.colors.outline;
+    const cy = by - 6 - 20;
+
+    // 跑道
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 46, 26, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#E8734A';
+    ctx.fill();
+    ctx.strokeStyle = o;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 分道线
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 39, 21, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+
+    // 内场草坪
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 32, 15.5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#5FBF3A';
+    ctx.fill();
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+
+    // 中线
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - 15);
+    ctx.lineTo(cx, cy + 15);
+    ctx.strokeStyle = 'rgba(255,255,255,0.75)';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+  },
+
+  /**
+   * 实验室（弧顶 + 天线）
+   */
+  bLab(ctx, cx, by) {
+    const o = this.colors.outline;
+    const w = 52, h = 28;
+    const x = cx - w / 2;
+    const y = by - 6 - h;
+
+    this.box(ctx, cx - 27, by - 6, 54, 6, this.colors.wallShade, o, 1.6);
+    this.box(ctx, x, y, w, h, this.colors.wall, o, 2);
+
+    // 弧顶
+    ctx.beginPath();
+    ctx.moveTo(x - 5, y);
+    ctx.quadraticCurveTo(cx, y - 22, x + w + 5, y);
+    ctx.closePath();
+    ctx.fillStyle = this.colors.roofBlue;
+    ctx.fill();
+    ctx.strokeStyle = o;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 窗户
+    for (let c = 0; c < 3; c++) {
+      this.box(ctx, x + 7 + c * 15, y + 8, 10, 9, this.colors.window, o, 1.2, 1.5);
+    }
+
+    // 门
+    this.box(ctx, cx - 7, by - 6 - 13, 14, 13, this.colors.roofBrown, o, 1.6, 2);
+
+    // 天线
+    ctx.beginPath();
+    ctx.moveTo(cx, y - 16);
+    ctx.lineTo(cx, y - 28);
+    ctx.strokeStyle = o;
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(cx, y - 30, 3.2, 0, Math.PI * 2);
+    ctx.fillStyle = '#FF6B6B';
+    ctx.fill();
+    ctx.strokeStyle = o;
+    ctx.lineWidth = 1.3;
+    ctx.stroke();
+  },
+
+  /**
+   * 校门
+   */
+  bGate(ctx, cx, by) {
+    const o = this.colors.outline;
+
+    this.box(ctx, cx - 34, by - 6, 68, 6, this.colors.wallShade, o, 1.6);
+
+    // 立柱
+    this.box(ctx, cx - 30, by - 6 - 40, 12, 40, this.colors.wall, o, 2);
+    this.box(ctx, cx + 18, by - 6 - 40, 12, 40, this.colors.wall, o, 2);
+
+    // 柱头
+    this.box(ctx, cx - 33, by - 6 - 46, 18, 7, this.colors.wallShade, o, 1.6, 2);
+    this.box(ctx, cx + 15, by - 6 - 46, 18, 7, this.colors.wallShade, o, 1.6, 2);
+
+    // 横梁
+    this.box(ctx, cx - 38, by - 6 - 58, 76, 13, this.colors.roofRed, o, 2, 3);
+
+    // 校名牌
+    this.box(ctx, cx - 19, by - 6 - 56, 38, 9, '#FFF3C4', o, 1.3, 2);
+    ctx.fillStyle = '#A8560F';
+    ctx.font = 'bold 7px "PingFang SC", "Microsoft YaHei", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(text, x, labelY + labelH / 2);
+    ctx.fillText('校园', cx, by - 6 - 51.3);
+  },
+
+  /**
+   * 小花园
+   */
+  bGarden(ctx, cx, by) {
+    const o = this.colors.outline;
+
+    // 花坛土台
+    this.box(ctx, cx - 36, by - 14, 72, 14, '#B98A5C', o, 1.8, 5);
+
+    // 花坛绿植
+    ctx.beginPath();
+    ctx.moveTo(cx - 32, by - 14);
+    ctx.quadraticCurveTo(cx, by - 36, cx + 32, by - 14);
+    ctx.closePath();
+    ctx.fillStyle = this.colors.tree;
+    ctx.fill();
+    ctx.strokeStyle = o;
+    ctx.lineWidth = 1.7;
+    ctx.stroke();
+
+    // 花朵
+    const petal = ['#FF6B8A', '#FFD166', '#FF9F1C', '#E86A92', '#FFB3C6', '#B48CF2'];
+    [[-24, -18], [-13, -23], [-2, -26], [9, -24], [19, -20], [27, -15]].forEach((p, i) => {
+      ctx.beginPath();
+      ctx.arc(cx + p[0], by + p[1], 4.6, 0, Math.PI * 2);
+      ctx.fillStyle = petal[i % petal.length];
+      ctx.fill();
+      ctx.strokeStyle = o;
+      ctx.lineWidth = 1.1;
+      ctx.stroke();
+    });
+
+    // 小树
+    this.drawTree(ctx, cx - 40, by - 16, 12);
+    this.drawTree(ctx, cx + 40, by - 16, 11);
+  },
+
+  /**
+   * 湖边凉亭
+   */
+  bPavilion(ctx, cx, by) {
+    const o = this.colors.outline;
+
+    // 基座
+    this.box(ctx, cx - 20, by - 8, 40, 8, this.colors.wallShade, o, 1.6, 2);
+
+    // 柱子
+    [-13, -4.5, 4.5, 13].forEach(dx => {
+      this.box(ctx, cx + dx - 1.6, by - 28, 3.2, 20, '#D9A066', o, 1.2);
+    });
+
+    // 下层屋檐
+    ctx.beginPath();
+    ctx.moveTo(cx - 28, by - 28);
+    ctx.lineTo(cx + 28, by - 28);
+    ctx.lineTo(cx + 15, by - 42);
+    ctx.lineTo(cx - 15, by - 42);
+    ctx.closePath();
+    ctx.fillStyle = this.colors.roofRed;
+    ctx.fill();
+    ctx.strokeStyle = o;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 上层屋檐
+    ctx.beginPath();
+    ctx.moveTo(cx - 21, by - 41);
+    ctx.lineTo(cx + 21, by - 41);
+    ctx.lineTo(cx + 10, by - 53);
+    ctx.lineTo(cx - 10, by - 53);
+    ctx.closePath();
+    ctx.fillStyle = '#F2704A';
+    ctx.fill();
+    ctx.strokeStyle = o;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 宝顶
+    ctx.beginPath();
+    ctx.arc(cx, by - 56, 3.6, 0, Math.PI * 2);
+    ctx.fillStyle = '#FFD166';
+    ctx.fill();
+    ctx.strokeStyle = o;
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+  },
+
+  /**
+   * 通用小屋（自定义地点）
+   */
+  bHouse(ctx, cx, by, icon) {
+    const o = this.colors.outline;
+    const w = 46, h = 28;
+    const x = cx - w / 2;
+    const y = by - 6 - h;
+
+    this.box(ctx, cx - 24, by - 6, 48, 6, this.colors.wallShade, o, 1.6);
+
+    // 墙体
+    this.box(ctx, x, y, w, h, this.colors.wall, o, 2);
+
+    // 人字屋顶
+    ctx.beginPath();
+    ctx.moveTo(x - 7, y + 1);
+    ctx.lineTo(cx, y - 22);
+    ctx.lineTo(x + w + 7, y + 1);
+    ctx.closePath();
+    ctx.fillStyle = this.colors.roofOrange;
+    ctx.fill();
+    ctx.strokeStyle = o;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 窗
+    this.box(ctx, x + 6, y + 8, 11, 10, this.colors.window, o, 1.2, 1.5);
+    this.box(ctx, x + w - 17, y + 8, 11, 10, this.colors.window, o, 1.2, 1.5);
+
+    // 门
+    this.box(ctx, cx - 6, by - 6 - 12, 12, 12, this.colors.roofBrown, o, 1.5, 2);
+
+    // 用户选择的图标（小招牌）
+    if (icon) {
+      ctx.font = '15px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(icon, cx, y - 30);
+    }
+  },
+
+  /**
+   * 橙色胶囊标签（参考图样式）
+   */
+  drawLabel(ctx, x, y, text, isSelected, moodColor) {
+    ctx.font = 'bold 13px "PingFang SC", "Microsoft YaHei", sans-serif';
+    const tw = ctx.measureText(text).width;
+    const padX = 13;
+    const h = 25;
+    const w = tw + padX * 2;
+    const bx = x - w / 2;
+    const by = y;
+
+    // 投影
+    ctx.save();
+    ctx.fillStyle = 'rgba(58,102,28,0.28)';
+    this.roundRect(ctx, bx, by + 3, w, h, h / 2);
+    ctx.fill();
+    ctx.restore();
+
+    // 胶囊底
+    this.roundRect(ctx, bx, by, w, h, h / 2);
+    ctx.fillStyle = isSelected ? '#FF7A00' : this.colors.labelBg;
+    ctx.fill();
+    ctx.strokeStyle = this.colors.labelBgDark;
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+
+    // 顶部高光
+    ctx.save();
+    ctx.globalAlpha = 0.32;
+    this.roundRect(ctx, bx + 3.5, by + 2.5, w - 7, h * 0.34, h * 0.17);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fill();
+    ctx.restore();
+
+    // 文字
+    ctx.fillStyle = this.colors.labelText;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, x, by + h / 2 + 0.5);
+
+    // 左侧心情色点
+    if (moodColor) {
+      ctx.beginPath();
+      ctx.arc(bx - 7, by + h / 2, 4.2, 0, Math.PI * 2);
+      ctx.fillStyle = moodColor;
+      ctx.fill();
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+    }
   },
 
   // ==================== 工具方法 ====================

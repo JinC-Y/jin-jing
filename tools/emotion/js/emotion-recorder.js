@@ -243,7 +243,14 @@ const EmotionRecorder = {
           CampusMap.refresh();
         }
 
-        // 显示庆祝弹窗
+        // 低落 / 焦虑时，先送上满屏的温暖话语，而不是普通的记录成功弹窗
+        if (typeof ComfortExperience !== 'undefined' &&
+            ComfortExperience.shouldComfort(selectedMood)) {
+          ComfortExperience.show(selectedMood, this.currentLocation);
+          return;
+        }
+
+        // 其余心情：显示庆祝弹窗
         this.showCelebrate(selectedMood, this.currentLocation);
       });
     }

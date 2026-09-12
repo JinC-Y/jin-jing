@@ -2924,6 +2924,150 @@ body.intro-locked {
   }
 }
 
+/* ========================================
+   温暖安慰弹幕
+   复刻「一份神秘礼物」：满屏温柔话语把你接住
+   ======================================== */
+
+.comfort-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 22% 18%, rgba(255, 244, 214, 0.9) 0%, rgba(255, 244, 214, 0) 46%),
+    radial-gradient(circle at 78% 76%, rgba(255, 231, 235, 0.85) 0%, rgba(255, 231, 235, 0) 50%),
+    linear-gradient(168deg, #FBFAF7 0%, #F7F7F4 52%, #F4F6F3 100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.comfort-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ---- 气泡场 ---- */
+.comfort-field {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.comfort-bubble {
+  position: absolute;
+  max-width: min(38vw, 210px);
+  padding: 7px 13px;
+  border-radius: 10px;
+  color: #4B4A46;
+  font-family: var(--yuque-font);
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 1px 3px rgba(120, 110, 90, 0.10);
+  transform: translate(-50%, -50%) rotate(var(--rot, 0deg));
+  transform-origin: center;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+/* ---- 顶部问候 ---- */
+.comfort-greeting {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 26px 20px 20px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  color: #6B6459;
+  pointer-events: none;
+  z-index: 20;
+  opacity: 0;
+  background: linear-gradient(180deg, rgba(251, 250, 247, 0.96) 0%, rgba(251, 250, 247, 0.72) 62%, rgba(251, 250, 247, 0) 100%);
+}
+
+.comfort-overlay.active .comfort-greeting {
+  animation: comfortGreetIn 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.15s forwards;
+}
+
+@keyframes comfortGreetIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-14px);
+    filter: blur(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+/* ---- 底部提示 ---- */
+.comfort-footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 34px 20px 22px;
+  text-align: center;
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: #A79F92;
+  pointer-events: none;
+  z-index: 20;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  background: linear-gradient(0deg, rgba(251, 250, 247, 0.96) 0%, rgba(251, 250, 247, 0.6) 55%, rgba(251, 250, 247, 0) 100%);
+}
+
+.comfort-footer.show {
+  opacity: 1;
+  animation: comfortBreath 2.6s ease-in-out infinite;
+}
+
+@keyframes comfortBreath {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 0.45; }
+}
+
+/* ---- 小屏适配 ---- */
+@media (max-width: 640px) {
+  .comfort-bubble {
+    max-width: 42vw;
+    padding: 6px 11px;
+    border-radius: 9px;
+  }
+
+  .comfort-greeting {
+    font-size: 13.5px;
+    letter-spacing: 1px;
+    padding: 20px 16px 16px;
+  }
+
+  .comfort-footer {
+    font-size: 11px;
+    padding: 28px 16px 18px;
+  }
+}
+
+/* ---- 尊重"减少动态效果"偏好 ---- */
+@media (prefers-reduced-motion: reduce) {
+  .comfort-bubble {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+}
+
 /* ---- 响应式 ---- */
 @media (max-width: 768px) {
   .app-container {

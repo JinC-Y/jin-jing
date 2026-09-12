@@ -308,10 +308,9 @@ const Achievements = {
       });
     };
 
-    // 开场动画还在播时先等待（它的层级更高，否则会被盖住）
-    const intro = document.getElementById('intro-overlay');
-    if (intro && document.body.contains(intro)) {
-      this._waitForIntro(0, proceed);
+    // 开场动画 / 安慰弹幕还在时先等待（它们的层级更高，否则会被盖住）
+    if (this._higherLayerBusy()) {
+      this._waitForHigherLayer(0, proceed);
       return;
     }
 
@@ -322,17 +321,27 @@ const Achievements = {
   },
 
   /**
-   * 轮询等待开场动画结束（最多 4 秒）
+   * 是否有更高层级的全屏层正在展示
    */
-  _waitForIntro(elapsed, proceed) {
+  _higherLayerBusy() {
     const intro = document.getElementById('intro-overlay');
-    const stillThere = intro && document.body.contains(intro);
+    if (intro && document.body.contains(intro)) return true;
 
-    if (!stillThere || elapsed >= 4000) {
+    const comfort = document.getElementById('comfort-overlay');
+    if (comfort && comfort.classList.contains('active')) return true;
+
+    return false;
+  },
+
+  /**
+   * 轮询等待更高层级结束（最多 20 秒，覆盖安慰弹幕的时长）
+   */
+  _waitForHigherLayer(elapsed, proceed) {
+    if (!this._higherLayerBusy() || elapsed >= 20000) {
       proceed();
       return;
     }
-    setTimeout(() => this._waitForIntro(elapsed + 200, proceed), 200);
+    setTimeout(() => this._waitForHigherLayer(elapsed + 250, proceed), 250);
   },
 
   /**

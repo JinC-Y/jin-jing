@@ -51,6 +51,7 @@ const TestTools = {
         <div class="test-actions">
           <button class="btn-sm btn-secondary" id="test-preview-ach" title="预览成就解锁特效">🏆 预览成就特效</button>
           <button class="btn-sm btn-secondary" id="test-replay-intro" title="重播开场动画">🎬 重播开场</button>
+          <button class="btn-sm btn-secondary" id="test-preview-comfort" title="预览安慰弹幕">💗 预览安慰弹幕</button>
         </div>
       </div>
     `;
@@ -166,6 +167,15 @@ const TestTools = {
         if (typeof IntroAnimation === 'undefined' || !IntroAnimation.replay()) {
           showToast('开场动画不可重播，请刷新页面');
         }
+      });
+    }
+
+    // 预览安慰弹幕
+    const previewComfortBtn = document.getElementById('test-preview-comfort');
+    if (previewComfortBtn) {
+      previewComfortBtn.addEventListener('click', () => {
+        if (typeof ComfortExperience === 'undefined') return;
+        ComfortExperience.show(1, { name: '教学楼' });
       });
     }
   },

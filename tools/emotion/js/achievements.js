@@ -246,8 +246,8 @@ const Achievements = {
 
     if (newUnlocks.length > 0) {
       this.saveData();
-      // 依次播放解锁特效
-      newUnlocks.forEach(ach => this.enqueueUnlock(ach));
+      // 整批入队，依次播放解锁特效
+      this.enqueueUnlockBatch(newUnlocks);
     }
 
     return newUnlocks;
@@ -256,114 +256,238 @@ const Achievements = {
   /* ==================== 解锁特效 ==================== */
 
   _unlockQueue: [],
-  _showingUnlock: false,
-  _unlockTimer: null,
+  _unlockPlaying: false,
+  _unlockToken: 0,
+  _unlockClose: null,
+
+  /** 单张卡片的停留时长 */
+  UNLOCK_HOLD: 2600,
+  /** 批量解锁时略微缩短，避免等太久 */
+  UNLOCK_HOLD_BATCH: 2200,
 
   /**
-   * 加入解锁队列
+   * 批量加入解锁队列（自动带上「第几个 / 共几个」）
    */
-  enqueueUnlock(def) {
-    this._unlockQueue.push(def);
-    if (!this._showingUnlock) this.showNextUnlock();
-  },
+  enqueueUnlockBatch(defs) {
+    if (!defs || defs.length === 0) return;
 
-  /**
-   * 播放下一个解锁特效
-   */
-  showNextUnlock() {
-    const def = this._unlockQueue.shift();
-    if (!def) {
-      this._showingUnlock = false;
-      return;
-    }
-    this._showingUnlock = true;
+    const pending = this._unlockQueue.length + (this._unlockPlaying ? 1 : 0);
+    const total = pending + defs.length;
 
-    // 若"心情已记录"弹窗正在显示，先让位给它，再播放成就特效
-    const celebrate = document.getElementById('emotion-celebrate');
-    const busy = celebrate && celebrate.classList.contains('active');
-    const delay = busy ? 1500 : 350;
-
-    setTimeout(() => {
-      const c = document.getElementById('emotion-celebrate');
-      if (c && c.classList.contains('active')) {
-        c.classList.remove('active');
-      }
-      this.playUnlockEffect(def, () => {
-        setTimeout(() => this.showNextUnlock(), 320);
+    defs.forEach((def, i) => {
+      this._unlockQueue.push({
+        def,
+        seq: pending + i + 1,
+        total
       });
-    }, delay);
+    });
+
+    this._pumpUnlockQueue();
   },
 
   /**
-   * 播放单个成就解锁动画
+   * 驱动队列：同一时刻只播一张卡片
    */
-  playUnlockEffect(def, onDone) {
-    const overlay = document.getElementById('achievement-unlock');
-    if (!overlay) {
-      // 兜底：没有弹窗元素时退回 toast
-      showToast(`🏆 成就解锁：${def.icon} ${def.name}`);
-      if (onDone) onDone();
+  _pumpUnlockQueue() {
+    if (this._unlockPlaying) return;
+
+    const item = this._unlockQueue.shift();
+    if (!item) return;
+
+    this._unlockPlaying = true;
+
+    const proceed = () => {
+      // 心情记录弹窗若还在，先收掉，避免两层叠在一起
+      const c = document.getElementById('emotion-celebrate');
+      if (c && c.classList.contains('active')) c.classList.remove('active');
+
+      this.showUnlockCard(item, () => {
+        this._unlockPlaying = false;
+        // 稍作停顿后播下一张，形成节奏
+        setTimeout(() => this._pumpUnlockQueue(), 200);
+      });
+    };
+
+    // 开场动画还在播时先等待（它的层级更高，否则会被盖住）
+    const intro = document.getElementById('intro-overlay');
+    if (intro && document.body.contains(intro)) {
+      this._waitForIntro(0, proceed);
       return;
     }
 
+    // 心情弹窗正在显示时稍作停顿，让用户先看到它
+    const celebrate = document.getElementById('emotion-celebrate');
+    const wait = (celebrate && celebrate.classList.contains('active')) ? 1100 : 280;
+    setTimeout(proceed, wait);
+  },
+
+  /**
+   * 轮询等待开场动画结束（最多 4 秒）
+   */
+  _waitForIntro(elapsed, proceed) {
+    const intro = document.getElementById('intro-overlay');
+    const stillThere = intro && document.body.contains(intro);
+
+    if (!stillThere || elapsed >= 4000) {
+      proceed();
+      return;
+    }
+    setTimeout(() => this._waitForIntro(elapsed + 200, proceed), 200);
+  },
+
+  /**
+   * 显示一张成就解锁卡片
+   * @param {{def:Object, seq:number, total:number}} item
+   * @param {Function} done 本张结束后回调
+   */
+  showUnlockCard(item, done) {
+    const overlay = document.getElementById('achievement-unlock');
+    const def = item.def;
+
+    // 兜底：没有弹窗元素时退回 toast，但队列必须继续
+    if (!overlay) {
+      showToast(`🏆 成就解锁：${def.icon} ${def.name}`);
+      done();
+      return;
+    }
+
+    const token = ++this._unlockToken;
+
+    // ---- 填充内容 ----
     const iconEl = document.getElementById('ach-badge-icon');
     const nameEl = document.getElementById('ach-unlock-name');
     const descEl = document.getElementById('ach-unlock-desc');
+    const counterEl = document.getElementById('ach-unlock-counter');
     const particlesEl = document.getElementById('ach-particles');
 
     if (iconEl) iconEl.textContent = def.icon;
     if (nameEl) nameEl.textContent = def.name;
     if (descEl) descEl.textContent = def.description;
+    if (counterEl) {
+      counterEl.textContent = item.total > 1 ? `${item.seq} / ${item.total}` : '';
+      counterEl.style.display = item.total > 1 ? 'block' : 'none';
+    }
 
-    // 生成粒子
     if (particlesEl) {
       particlesEl.innerHTML = '';
       this.spawnUnlockParticles(particlesEl, def);
     }
 
-    // 显示
+    // ---- 重新播放入场（每张卡片都从头播一次）----
     overlay.classList.remove('active');
-    void overlay.offsetWidth;   // 强制重排以重播动画
+    void overlay.offsetWidth;
     overlay.classList.add('active');
-
-    // 音效感的视觉反馈：短暂高亮页面主色
+    this.playEntrance(overlay);
     this.flashAccent();
 
-    // 清理旧监听
-    if (this._overlayClickHandler) {
-      overlay.removeEventListener('click', this._overlayClickHandler);
-    }
-    if (this._unlockTimer) {
-      clearTimeout(this._unlockTimer);
-    }
+    // ---- 关闭逻辑（token 保证旧定时器不会误关新卡片）----
+    let finished = false;
+    const shownAt = Date.now();
+    const hold = item.total > 1 ? this.UNLOCK_HOLD_BATCH : this.UNLOCK_HOLD;
 
-    let closed = false;
-    const close = () => {
-      if (closed) return;
-      closed = true;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
 
-      if (this._unlockTimer) {
-        clearTimeout(this._unlockTimer);
-        this._unlockTimer = null;
-      }
-      overlay.removeEventListener('click', this._overlayClickHandler);
-      this._overlayClickHandler = null;
+      clearTimeout(autoTimer);
+      overlay.removeEventListener('click', onClick);
 
+      // 已被更新的卡片接管，不做收尾
+      if (this._unlockToken !== token) return;
+
+      this._unlockClose = null;
       overlay.classList.remove('active');
+
       setTimeout(() => {
+        if (this._unlockToken !== token) return;
         if (particlesEl) particlesEl.innerHTML = '';
-        if (onDone) onDone();
-      }, 420);
+        done();
+      }, 320);
     };
 
-    this._overlayClickHandler = close;
-    // 延迟绑定，避免触发的这次点击立刻关闭
-    setTimeout(() => {
-      if (!closed) overlay.addEventListener('click', close);
-    }, 500);
+    // 点击关闭：用时间戳守卫，避免"刚出现就被触发的那次点击"误关
+    const onClick = () => {
+      if (Date.now() - shownAt < 300) return;
+      finish();
+    };
 
-    // 自动关闭
-    this._unlockTimer = setTimeout(close, 4200);
+    this._unlockClose = finish;
+    overlay.addEventListener('click', onClick);
+
+    const autoTimer = setTimeout(finish, hold);
+  },
+
+  /**
+   * 入场动画（通过 Web Animations API 驱动，保证每张卡片都重新播放）
+   */
+  playEntrance(overlay) {
+    const rise = (el, delay) => {
+      if (!el || typeof el.animate !== 'function') return;
+      try {
+        el.animate([
+          { opacity: 0, transform: 'translateY(18px)', filter: 'blur(6px)' },
+          { opacity: 1, transform: 'translateY(0)', filter: 'blur(0)' }
+        ], {
+          duration: 520,
+          delay,
+          easing: 'cubic-bezier(0.22, 1, 0.36, 1)'
+        });
+      } catch (e) { /* 忽略 */ }
+    };
+
+    try {
+      const stage = overlay.querySelector('.ach-unlock-stage');
+      const badge = overlay.querySelector('.ach-badge');
+
+      if (stage && typeof stage.animate === 'function') {
+        stage.animate([
+          { opacity: 0, transform: 'scale(0.55) rotate(-8deg)' },
+          { opacity: 1, transform: 'scale(1.06) rotate(2deg)', offset: 0.6 },
+          { opacity: 1, transform: 'scale(1) rotate(0deg)' }
+        ], {
+          duration: 680,
+          easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)'
+        });
+      }
+
+      if (badge && typeof badge.animate === 'function') {
+        badge.animate([
+          { opacity: 0, transform: 'scale(0) rotate(-180deg)' },
+          { opacity: 1, transform: 'scale(1.18) rotate(10deg)', offset: 0.55 },
+          { opacity: 1, transform: 'scale(0.94) rotate(-4deg)', offset: 0.76 },
+          { opacity: 1, transform: 'scale(1) rotate(0deg)' }
+        ], {
+          duration: 760,
+          delay: 110,
+          easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)'
+        });
+      }
+
+    } catch (e) {
+      console.warn('成就入场动画降级:', e.message);
+    }
+
+    // 文案逐行浮现
+    rise(overlay.querySelector('.ach-unlock-counter'), 420);
+    rise(overlay.querySelector('.ach-unlock-label'), 560);
+    rise(overlay.querySelector('.ach-unlock-name'), 660);
+    rise(overlay.querySelector('.ach-unlock-desc'), 780);
+    rise(overlay.querySelector('.ach-unlock-hint'), 940);
+  },
+
+  /**
+   * 直接播放单个成就特效（测试预览用，不进队列）
+   */
+  playUnlockEffect(def, onDone) {
+    // 先把当前正在播的卡片收掉，避免状态打架
+    if (this._unlockClose) {
+      this._unlockClose();
+      this._unlockClose = null;
+    }
+    this._unlockPlaying = false;
+    this._unlockQueue = [];
+
+    this.showUnlockCard({ def, seq: 1, total: 1 }, onDone || (() => {}));
   },
 
   /**

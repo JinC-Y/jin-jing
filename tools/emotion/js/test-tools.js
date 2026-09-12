@@ -291,12 +291,13 @@ const TestTools = {
   resetAll() {
     // 1. 停止可能正在播放的成就动画
     if (typeof Achievements !== 'undefined') {
-      if (Achievements._unlockTimer) {
-        clearTimeout(Achievements._unlockTimer);
-        Achievements._unlockTimer = null;
+      if (Achievements._unlockClose) {
+        Achievements._unlockClose();
+        Achievements._unlockClose = null;
       }
       Achievements._unlockQueue = [];
-      Achievements._showingUnlock = false;
+      Achievements._unlockPlaying = false;
+      Achievements._unlockToken++;
     }
 
     // 2. 清除 localStorage 中的情绪模块数据

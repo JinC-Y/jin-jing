@@ -3069,6 +3069,25 @@ body.intro-locked {
   }
 }
 
+/* ---- 安慰收尾特效：爱心 + 烟花 ---- */
+.comfort-finale {
+  position: fixed;
+  inset: 0;
+  z-index: 5100;
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+
+.comfort-finale.active {
+  opacity: 1;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
 /* ---- 响应式 ---- */
 @media (max-width: 768px) {
   .app-container {

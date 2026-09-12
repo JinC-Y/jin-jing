@@ -278,6 +278,11 @@ const ComfortExperience = {
       if (this._active) return;
       if (field) field.innerHTML = '';
       this._bubbles = [];
+
+      // 弹幕退场后，用爱心与烟花收尾
+      if (typeof ComfortFinale !== 'undefined' && !ComfortFinale.isActive()) {
+        ComfortFinale.play();
+      }
     }, 620);
   },
 

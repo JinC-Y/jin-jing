@@ -52,6 +52,7 @@ const TestTools = {
           <button class="btn-sm btn-secondary" id="test-preview-ach" title="预览成就解锁特效">🏆 预览成就特效</button>
           <button class="btn-sm btn-secondary" id="test-replay-intro" title="重播开场动画">🎬 重播开场</button>
           <button class="btn-sm btn-secondary" id="test-preview-comfort" title="预览安慰弹幕">💗 预览安慰弹幕</button>
+          <button class="btn-sm btn-secondary" id="test-preview-finale" title="预览爱心烟花">🎆 预览爱心烟花</button>
         </div>
       </div>
     `;
@@ -176,6 +177,16 @@ const TestTools = {
       previewComfortBtn.addEventListener('click', () => {
         if (typeof ComfortExperience === 'undefined') return;
         ComfortExperience.show(1, { name: '教学楼' });
+      });
+    }
+
+    // 预览爱心烟花收尾
+    const previewFinaleBtn = document.getElementById('test-preview-finale');
+    if (previewFinaleBtn) {
+      previewFinaleBtn.addEventListener('click', () => {
+        if (typeof ComfortFinale === 'undefined') return;
+        ComfortFinale.stop();
+        setTimeout(() => ComfortFinale.play(), 60);
       });
     }
   },

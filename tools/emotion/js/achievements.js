@@ -330,6 +330,8 @@ const Achievements = {
     const comfort = document.getElementById('comfort-overlay');
     if (comfort && comfort.classList.contains('active')) return true;
 
+    if (typeof ComfortFinale !== 'undefined' && ComfortFinale.isActive()) return true;
+
     return false;
   },
 

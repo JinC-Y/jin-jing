@@ -51,9 +51,13 @@ const CampusMap = {
     grass: '#8ACB4A',          // 鲜绿草地
     grassDark: '#6DB234',      // 深绿（描边/阴影）
     grassLight: '#A6DC6C',     // 浅绿（高光）
-    road: '#FFFFFF',           // 白色小路
-    roadEdge: '#E4F0D0',       // 路缘
-    roadShadow: 'rgba(90,140,50,0.18)',
+    // ---- 道路（沥青路三层结构） ----
+    sidewalk: '#EFE7D5',       // 人行道
+    sidewalkEdge: '#DDD3BC',   // 人行道外沿
+    curb: '#B9B2A2',           // 路缘石
+    asphalt: '#CFCBC2',        // 沥青路面
+    asphaltShade: 'rgba(90,86,78,0.16)',  // 路面阴影
+    crosswalk: 'rgba(252,250,243,0.94)',  // 斑马线
     outline: '#4A7A28',        // 深绿描边
     outlineSoft: 'rgba(74,122,40,0.55)',
     labelBg: '#FF9F1C',        // 橙色标签
@@ -95,24 +99,26 @@ const CampusMap = {
     { id: 'loc_lake',       name: '学子湖', x: 255, y: 505, icon: '🐟', type: 'pavilion',   isPreset: true, desc: '湖光潋滟' }
   ],
 
-  // 蜿蜒小路（控制点，绘制时自动平滑）
+  // 蜿蜒道路（w = 沥青路面宽度，主路更宽）
   roads: [
     // 主横路
-    [{ x: 10, y: 415 }, { x: 180, y: 396 }, { x: 400, y: 402 }, { x: 640, y: 408 }, { x: 890, y: 396 }],
+    { w: 30, pts: [{ x: 6, y: 415 }, { x: 180, y: 396 }, { x: 400, y: 402 }, { x: 640, y: 408 }, { x: 894, y: 396 }] },
     // 主纵路（校门 → 实验楼）
-    [{ x: 450, y: 60 }, { x: 452, y: 240 }, { x: 448, y: 400 }, { x: 452, y: 560 }, { x: 450, y: 700 }],
+    { w: 30, pts: [{ x: 450, y: 52 }, { x: 452, y: 240 }, { x: 448, y: 400 }, { x: 452, y: 560 }, { x: 450, y: 704 }] },
     // 上方横路
-    [{ x: 140, y: 188 }, { x: 300, y: 170 }, { x: 450, y: 182 }, { x: 612, y: 168 }, { x: 790, y: 192 }],
+    { w: 22, pts: [{ x: 136, y: 188 }, { x: 300, y: 170 }, { x: 450, y: 182 }, { x: 612, y: 168 }, { x: 796, y: 192 }] },
     // 左上纵路
-    [{ x: 180, y: 396 }, { x: 168, y: 296 }, { x: 140, y: 188 }],
+    { w: 18, pts: [{ x: 180, y: 396 }, { x: 168, y: 296 }, { x: 136, y: 188 }] },
     // 右上纵路
-    [{ x: 640, y: 408 }, { x: 676, y: 292 }, { x: 790, y: 192 }],
+    { w: 18, pts: [{ x: 640, y: 408 }, { x: 676, y: 292 }, { x: 796, y: 192 }] },
     // 右下支路
-    [{ x: 640, y: 408 }, { x: 706, y: 486 }, { x: 726, y: 578 }, { x: 800, y: 660 }],
+    { w: 18, pts: [{ x: 640, y: 408 }, { x: 706, y: 486 }, { x: 726, y: 578 }, { x: 806, y: 664 }] },
     // 左下支路（通往小花园与学子湖）
-    [{ x: 452, y: 566 }, { x: 344, y: 592 }, { x: 196, y: 588 }, { x: 90, y: 620 }],
+    { w: 18, pts: [{ x: 452, y: 566 }, { x: 344, y: 592 }, { x: 196, y: 588 }, { x: 86, y: 624 }] },
     // 体育馆连接路
-    [{ x: 168, y: 296 }, { x: 120, y: 372 }, { x: 92, y: 442 }]
+    { w: 16, pts: [{ x: 168, y: 296 }, { x: 120, y: 372 }, { x: 88, y: 446 }] },
+    // 寝室连接路
+    { w: 16, pts: [{ x: 706, y: 486 }, { x: 772, y: 452 }, { x: 806, y: 436 }] }
   ],
 
   // 装饰物（树木、灌木、花丛、云朵）
@@ -923,30 +929,119 @@ const CampusMap = {
   },
 
   /**
-   * 白色蜿蜒小路
+   * 沥青路面颗粒纹理
+   */
+  makeAsphaltPattern(ctx) {
+    try {
+      const size = 32;
+      const c = document.createElement('canvas');
+      c.width = size;
+      c.height = size;
+      const g = c.getContext('2d');
+      if (!g) return null;
+
+      g.fillStyle = this.colors.asphalt;
+      g.fillRect(0, 0, size, size);
+
+      // 确定性伪随机，保证每次纹理一致
+      let seed = 20240910;
+      const rnd = () => {
+        seed = (seed * 9301 + 49297) % 233280;
+        return seed / 233280;
+      };
+
+      for (let i = 0; i < 130; i++) {
+        g.fillStyle = rnd() > 0.5
+          ? 'rgba(255,255,255,0.07)'
+          : 'rgba(96,90,80,0.07)';
+        const s = 0.8 + rnd() * 1.7;
+        g.fillRect(rnd() * size, rnd() * size, s, s);
+      }
+
+      return ctx.createPattern(c, 'repeat');
+    } catch (e) {
+      return null;
+    }
+  },
+
+  /**
+   * 真实感道路：人行道 + 路缘石 + 沥青路面（分层错位形成路缘）
    */
   drawRoads(ctx) {
+    const C = this.colors;
+
     ctx.save();
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
-    // 路缘阴影
-    ctx.strokeStyle = this.colors.roadShadow;
-    ctx.lineWidth = 31;
-    this.roads.forEach(pts => {
-      this.tracePath(ctx, pts);
-      ctx.stroke();
-    });
+    // 分层统一描边：所有路的同一层一起画，交叉口才能正确合并
+    const strokeLayer = (extra, style) => {
+      ctx.strokeStyle = style;
+      this.roads.forEach(road => {
+        ctx.lineWidth = road.w + extra;
+        this.tracePath(ctx, road.pts);
+        ctx.stroke();
+      });
+    };
 
-    // 白色路面
-    ctx.strokeStyle = this.colors.road;
-    ctx.lineWidth = 25;
-    this.roads.forEach(pts => {
-      this.tracePath(ctx, pts);
+    // 1. 人行道外沿（最宽的浅色边）
+    strokeLayer(20, C.sidewalkEdge);
+    // 2. 人行道
+    strokeLayer(15, C.sidewalk);
+    // 3. 路缘石
+    strokeLayer(8, C.curb);
+
+    // 4. 沥青路面（带颗粒纹理）
+    const pattern = this.makeAsphaltPattern(ctx);
+    ctx.strokeStyle = pattern || C.asphalt;
+    this.roads.forEach(road => {
+      ctx.lineWidth = road.w;
+      this.tracePath(ctx, road.pts);
       ctx.stroke();
     });
 
     ctx.restore();
+
+    // 5. 斑马线
+    this.drawCrosswalks(ctx);
+  },
+
+  /**
+   * 绘制斑马线
+   */
+  drawCrosswalks(ctx) {
+    ctx.save();
+    ctx.fillStyle = this.colors.crosswalk;
+
+    // 横跨纵向主路（交叉口上下各一条）
+    this.paintCrosswalk(ctx, 450, 366, 46, 20);
+    this.paintCrosswalk(ctx, 450, 444, 46, 20);
+    // 横跨右侧纵向支路
+    this.paintCrosswalk(ctx, 645, 372, 34, 17);
+    // 横跨左侧纵向支路
+    this.paintCrosswalk(ctx, 176, 362, 34, 17);
+
+    ctx.restore();
+  },
+
+  /**
+   * 单条斑马线：条纹沿道路方向排列
+   * @param {number} cx 中心 x
+   * @param {number} cy 中心 y
+   * @param {number} span 覆盖的路宽
+   * @param {number} depth 斑马线自身进深
+   */
+  paintCrosswalk(ctx, cx, cy, span, depth) {
+    const count = 5;
+    const sw = 5;
+    const gap = (span - count * sw) / (count - 1);
+    let x = cx - span / 2;
+
+    for (let i = 0; i < count; i++) {
+      this.roundRect(ctx, x, cy - depth / 2, sw, depth, 1.5);
+      ctx.fill();
+      x += sw + gap;
+    }
   },
 
   /* ---------- 装饰物 ---------- */
